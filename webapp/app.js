@@ -16,10 +16,15 @@ let outOfStock = [];
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const stockParam = urlParams.get('out_of_stock');
-    console.log("RAW param:", stockParam); 
+    
+    // DEBUG - konsolda tekshirish uchun
+    console.log("RAW out_of_stock param:", stockParam);
+    console.log("Full URL:", window.location.href);
+
     if (stockParam) {
-        outOfStock = stockParam.split(',').map(id => decodeURIComponent(id));
+        outOfStock = stockParam.split(',').map(id => decodeURIComponent(id.trim()));
     }
+    
     console.log("outOfStock array:", outOfStock);
     console.log("products ids:", products.map(p => p.id));
 
@@ -64,8 +69,8 @@ function renderProducts() {
 
     products.forEach(p => {
         const isOut = outOfStock.includes(p.id);
-        
-        // Agar out_of_stock bo'lsa, cartdan o'chirib yuborish
+
+        // Agar mahsulot out_of_stock bo'lsa, cartdan o'chirib yuborish
         if (isOut && cart[p.id]) {
             delete cart[p.id];
             updateCartUI();
@@ -73,10 +78,11 @@ function renderProducts() {
 
         const card = document.createElement('div');
         card.className = `product-card ${isOut ? 'out-of-stock' : ''}`;
-        
+
+        // Tugma mantiqini aniq ajratish
         let qtyHTML;
         if (isOut) {
-            // ✅ "Hozircha yo'q" matni
+            // "Hozircha yo'q" matni — tugma yo'q
             qtyHTML = `<span style="color: #ff4d4d; font-weight: 800; font-size: 13px;">Hozircha yo'q</span>`;
         } else if (cart[p.id]) {
             // Cartda bor — +/- tugmalar
@@ -107,6 +113,9 @@ function renderProducts() {
 }
 
 function updateQty(id, delta) {
+    // Out of stock mahsulotga qo'shib bo'lmaydi
+    if (outOfStock.includes(id)) return;
+    
     cart[id] = (cart[id] || 0) + delta;
     if (cart[id] <= 0) delete cart[id];
     updateCartUI();
