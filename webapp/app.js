@@ -42,8 +42,9 @@ function renderSlider() {
     const slider = document.getElementById('topSlider');
     slider.innerHTML = '';
     products.forEach(p => {
+        const isOut = outOfStock.includes(p.id);
         const slide = document.createElement('div');
-        slide.className = 'slide-item';
+        slide.className = `slide-item ${isOut ? 'out-of-stock' : ''}`;
         slide.innerHTML = `
             <div class="slide-title-outer">${p.name}</div>
             <div class="slide-image-wrapper">
@@ -71,13 +72,15 @@ function renderProducts() {
                 <h3>${p.name}</h3>
                 <p class="price">${p.price.toLocaleString()} so'm</p>
                 <div class="qty-control">
-                    ${cart[p.id] ? `
+                    ${isOut ? `
+                        <span style="color: #ff4d4d; font-weight: 800; font-size: 13px;">Hozircha yo'q</span>
+                    ` : (cart[p.id] ? `
                         <button class="qty-btn" onclick="updateQty('${p.id}', -1)">-</button>
                         <span>${cart[p.id]}</span>
                         <button class="qty-btn" onclick="updateQty('${p.id}', 1)">+</button>
                     ` : `
-                        <button class="premium-btn" onclick="updateQty('${p.id}', 1)" ${isOut ? 'disabled' : ''} style="width:100%; padding: 6px;">Qo'shish</button>
-                    `}
+                        <button class="premium-btn" onclick="updateQty('${p.id}', 1)" style="width:100%; padding: 6px;">Qo'shish</button>
+                    `)}
                 </div>
             </div>
         `;
