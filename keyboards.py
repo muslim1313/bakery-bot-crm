@@ -1,13 +1,15 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from config import WEBAPP_URL
+import urllib.parse
 
 def get_main_menu(out_param=""):
     url = WEBAPP_URL
     if out_param:
+        encoded_param = urllib.parse.quote(out_param)
         if "?" in url:
-            url += f"&out_of_stock={out_param}"
+            url += f"&out_of_stock={encoded_param}"
         else:
-            url += f"?out_of_stock={out_param}"
+            url += f"?out_of_stock={encoded_param}"
             
     return ReplyKeyboardMarkup(
         keyboard=[
@@ -20,10 +22,11 @@ def get_main_menu(out_param=""):
 def get_user_menu(out_param=""):
     url = WEBAPP_URL
     if out_param:
+        encoded_param = urllib.parse.quote(out_param)
         if "?" in url:
-            url += f"&out_of_stock={out_param}"
+            url += f"&out_of_stock={encoded_param}"
         else:
-            url += f"?out_of_stock={out_param}"
+            url += f"?out_of_stock={encoded_param}"
             
     return ReplyKeyboardMarkup(
         keyboard=[
