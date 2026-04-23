@@ -11,6 +11,8 @@ def get_main_menu(out_param=""):
         else:
             url += f"?out_of_stock={encoded_param}"
             
+    print(f"DEBUG: WebApp URL is '{url}'")
+            
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="🛒 Buyurtma berish", web_app=WebAppInfo(url=url))],
@@ -27,6 +29,8 @@ def get_user_menu(out_param=""):
             url += f"&out_of_stock={encoded_param}"
         else:
             url += f"?out_of_stock={encoded_param}"
+            
+    print(f"DEBUG: WebApp User URL is '{url}'")
             
     return ReplyKeyboardMarkup(
         keyboard=[
