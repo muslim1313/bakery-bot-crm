@@ -16,9 +16,12 @@ let outOfStock = [];
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const stockParam = urlParams.get('out_of_stock');
+    console.log("RAW param:", stockParam); 
     if (stockParam) {
         outOfStock = stockParam.split(',').map(id => decodeURIComponent(id));
     }
+    console.log("outOfStock array:", outOfStock);
+    console.log("products ids:", products.map(p => p.id));
 
     // Load saved data
     const savedName = localStorage.getItem('bakery_name');

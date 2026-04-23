@@ -37,7 +37,12 @@ async def cmd_start(message: Message):
 
     from aiogram.types import LinkPreviewOptions
     # Combine into one message for better keyboard reliability
-    await message.answer(welcome_text, reply_markup=reply_markup, parse_mode="HTML", link_preview_options=LinkPreviewOptions(is_disabled=True))
+    await message.answer(
+        f"{welcome_text}\n\n♻️ <i>Mahsulotlar holati yangilandi. Buyurtma berish uchun pastdagi tugmani bosing.</i>", 
+        reply_markup=reply_markup, 
+        parse_mode="HTML", 
+        link_preview_options=LinkPreviewOptions(is_disabled=True)
+    )
 
 @router.message(F.web_app_data)
 async def web_app_data_handler(message: Message, bot: Bot):
