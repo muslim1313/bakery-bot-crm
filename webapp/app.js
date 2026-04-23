@@ -17,7 +17,7 @@ window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const stockParam = urlParams.get('out_of_stock');
     if (stockParam) {
-        outOfStock = stockParam.split(',');
+        outOfStock = stockParam.split(',').map(id => decodeURIComponent(id));
     }
 
     // Load saved data
