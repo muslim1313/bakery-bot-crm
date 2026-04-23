@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Saxovat Baraka - Online Market</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="loading">
+    <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Eski Banner-Header -->
+    <div class="header banner-header">
+        <div class="banner-wrapper">
+            <img src="assets/logo.png" alt="Logo">
+            <div class="logo-text">SAXOVAT BARAKA</div>
+        </div>
+    </div>
+
+    <main id="app">
+        <!-- Eski Slayder -->
+        <div class="top-slider" id="topSlider">
+            <!-- JavaScript orqali joylashtiriladi -->
+        </div>
+
+        <p class="subtitle-text">Hamyonbop narxlar va Mazali tamlar</p>
+
+        <section class="product-grid" id="productGrid">
+            <!-- Products will be injected here by app.js -->
+        </section>
+
+        <!-- Eski Kontakt qismi -->
+        <div class="contact-info">
+            <p>Buyurtma yoki savollar bo'yicha aloqa:</p>
+            <div class="contact-links">
+                <a href="tel:+998200131394" class="c-link">
+                    <span class="icon">📞</span> +998 (20) 013-13-94
+                </a>
+                <a href="https://t.me/muslimm1313" class="c-link" target="_blank">
+                    <span class="icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#2AABEE" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18.1.417 4.542-1.321 8.875-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.896-.667 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.1-.002.321.023.465.14.144.117.165.25.171.325.016.093.036.306.02.472z"/>
+                        </svg>
+                    </span> @muslimm1313
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Yangi Savatcha Paneli (V2 uslubida) -->
+    <div id="cartBar" class="cart-bar hidden">
+        <div class="cart-info">
+            <span id="cartCount">0 dona</span>
+            <span id="cartTotal">0 so'm</span>
+        </div>
+        <button id="orderBtn" class="premium-btn">Buyurtma berish</button>
+    </div>
+
+    <!-- Yangi Buyurtma Oynasi (V2 uslubida) -->
+    <div id="orderModal" class="modal-overlay hidden">
+        <div class="modal-content glass">
+            <h3>Buyurtma tafsilotlari</h3>
+            <div id="cartItems" class="modal-items"></div>
+            
+            <div class="input-group">
+                <label>Ismingiz:</label>
+                <input type="text" id="userName" placeholder="Ismingizni kiriting">
+            </div>
+
+            <div class="input-group">
+                <label>Telefon raqam:</label>
+                <input type="tel" id="userPhone" placeholder="+998901234567">
+            </div>
+
+            <div class="input-group">
+                <label>Do'kon nomi:</label>
+                <input type="text" id="userStore" placeholder="Chorsu bozor 5-do'kon">
+            </div>
+
+            <p class="loc-hint">Manzilingizni aniqlash uchun geolokatsiyadan foydalanamiz.</p>
+
+            <div class="modal-actions">
+                <button id="closeModal" class="secondary-btn">Orqaga</button>
+                <button id="submitOrder" class="premium-btn">Tasdiqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
