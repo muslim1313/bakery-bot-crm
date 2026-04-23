@@ -67,8 +67,12 @@ def get_inventory_kb(inventory_list):
     return InlineKeyboardMarkup(inline_keyboard=kb)
 
 def get_share_kb():
+    share_text = urllib.parse.quote("Shirinliklar va pechini buyurtma berish uchun bot!")
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🚀 Botni ulashish", url="https://t.me/share/url?url=https://t.me/SaxovataBaraka_buyurtma_bot&text=Shirinliklar va pechini buyurtma berish uchun bot!")]
+            [InlineKeyboardButton(
+                text="🚀 Botni ulashish", 
+                url=f"https://t.me/share/url?url=https://t.me/SaxovataBaraka_buyurtma_bot&text={share_text}"
+            )]
         ]
     )

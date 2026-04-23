@@ -35,8 +35,9 @@ async def cmd_start(message: Message):
     else:
         reply_markup = kb.get_user_menu(out_param)
 
+    from aiogram.types import LinkPreviewOptions
     # Combine into one message for better keyboard reliability
-    await message.answer(welcome_text, reply_markup=reply_markup, parse_mode="HTML", disable_web_page_preview=True)
+    await message.answer(welcome_text, reply_markup=reply_markup, parse_mode="HTML", link_preview_options=LinkPreviewOptions(is_disabled=True))
 
 @router.message(F.web_app_data)
 async def web_app_data_handler(message: Message, bot: Bot):
