@@ -64,9 +64,32 @@ function renderProducts() {
 
     products.forEach(p => {
         const isOut = outOfStock.includes(p.id);
+        
+        // Agar out_of_stock bo'lsa, cartdan o'chirib yuborish
+        if (isOut && cart[p.id]) {
+            delete cart[p.id];
+            updateCartUI();
+        }
+
         const card = document.createElement('div');
         card.className = `product-card ${isOut ? 'out-of-stock' : ''}`;
         
+        let qtyHTML;
+        if (isOut) {
+            // ✅ "Hozircha yo'q" matni
+            qtyHTML = `<span style="color: #ff4d4d; font-weight: 800; font-size: 13px;">Hozircha yo'q</span>`;
+        } else if (cart[p.id]) {
+            // Cartda bor — +/- tugmalar
+            qtyHTML = `
+                <button class="qty-btn" onclick="updateQty('${p.id}', -1)">-</button>
+                <span>${cart[p.id]}</span>
+                <button class="qty-btn" onclick="updateQty('${p.id}', 1)">+</button>
+            `;
+        } else {
+            // Oddiy "Qo'shish" tugmasi
+            qtyHTML = `<button class="premium-btn" onclick="updateQty('${p.id}', 1)" style="width:100%; padding: 6px;">Qo'shish</button>`;
+        }
+
         card.innerHTML = `
             <div class="img-container">
                 <img src="${p.img}" alt="${p.name}">
@@ -75,15 +98,7 @@ function renderProducts() {
                 <h3>${p.name}</h3>
                 <p class="price">${p.price.toLocaleString()} so'm</p>
                 <div class="qty-control">
-                    ${isOut ? `
-                        <span style="color: #ff4d4d; font-weight: 800; font-size: 13px;">Hozircha yo'q</span>
-                    ` : (cart[p.id] ? `
-                        <button class="qty-btn" onclick="updateQty('${p.id}', -1)">-</button>
-                        <span>${cart[p.id]}</span>
-                        <button class="qty-btn" onclick="updateQty('${p.id}', 1)">+</button>
-                    ` : `
-                        <button class="premium-btn" onclick="updateQty('${p.id}', 1)" style="width:100%; padding: 6px;">Qo'shish</button>
-                    `)}
+                    ${qtyHTML}
                 </div>
             </div>
         `;
