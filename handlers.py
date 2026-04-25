@@ -21,10 +21,8 @@ async def cmd_start(message: Message):
         out_param = ""
 
     welcome_text = (
-        "✨ <b>Saxovat Baraka</b> shirinliklar buyurtma botiga xush kelibsiz! 🍪\n\n"
-        "Bizda har doim sarxil, mazali va hamyonbop pishiriqlarni topasiz.\n\n"
-        "🛒 Buyurtma berish uchun pastdagi tugmani bosing!\n\n"
-        "📢 Do'stlaringizga ham ulashing: https://t.me/share/url?url=https://t.me/SaxovataBaraka_buyurtma_bot"
+        "✨ <b>Saxovat Baraka</b> buyurtma botiga xush kelibsiz!\n\n"
+        "👇 Buyurtma berish uchun pastdagi tugmani bosing."
     )
     
     # Check admin status
@@ -38,7 +36,7 @@ async def cmd_start(message: Message):
     from aiogram.types import LinkPreviewOptions
     # Combine into one message for better keyboard reliability
     await message.answer(
-        f"{welcome_text}\n\n♻️ <i>Mahsulotlar holati yangilandi. Buyurtma berish uchun pastdagi tugmani bosing.</i>", 
+        welcome_text, 
         reply_markup=reply_markup, 
         parse_mode="HTML", 
         link_preview_options=LinkPreviewOptions(is_disabled=True)

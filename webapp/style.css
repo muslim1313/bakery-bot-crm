@@ -166,7 +166,7 @@ body {
 .product-info .price { font-size: 16px; font-weight: 800; color: var(--btn-color); margin-bottom: 10px; }
 
 /* Out of Stock Style */
-.product-card.out-of-stock, .slide-item.out-of-stock {
+.product-card.out-of-stock {
     opacity: 0.5;
     filter: grayscale(1);
     pointer-events: none;
@@ -191,7 +191,7 @@ body {
 .qty-btn {
     width: 30px;
     height: 30px;
-    border-radius: 50%;
+    border-radius: 8px;
     border: none;
     background: var(--btn-color);
     color: #fff;
