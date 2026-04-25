@@ -1,5 +1,5 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery, LinkPreviewOptions
+from aiogram.types import Message, CallbackQuery, LinkPreviewOptions, InlineQuery, InlineQueryResultPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
 from config import ADMIN_ID, GROUP_ID, PRODUCTS_PRICING
 import database as db
@@ -192,3 +192,27 @@ async def manual_report_callback(callback: CallbackQuery, bot: Bot):
             await callback.message.answer("Xatolik: Hisobot faylini yaratib bo'lmadi.")
     except Exception as e:
         await callback.message.answer(f"Xatolik: {e}")
+
+@router.inline_query()
+async def inline_share_handler(inline_query: InlineQuery):
+    photo_url = "https://muslim1313.github.io/bakery-bot-crm/assets/promo_share.png"
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🛒 Botga o'tish va buyurtma berish", url="https://t.me/SaxovataBaraka_buyurtma_bot")]
+        ]
+    )
+    
+    result = InlineQueryResultPhoto(
+        id="share_promo_1",
+        photo_url=photo_url,
+        thumbnail_url=photo_url,
+        title="Botni do'stlarga ulashish",
+        description="Saxovat Baraka shirinliklari",
+        caption="✨ <b>Saxovat Baraka</b> pishiriqlari!\n\nEng mazali va hamyonbop shirinliklarni bevosita bot orqali buyurtma qiling. Do'stlaringizga ham ulashing! 🍪",
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
+    
+    await inline_query.answer([result], cache_time=1, is_personal=True)
+
