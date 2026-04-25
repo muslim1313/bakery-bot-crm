@@ -4,6 +4,11 @@ import urllib.parse
 
 def get_main_menu(out_param=""):
     url = WEBAPP_URL
+    if "?" not in url:
+        url += "?v=3.0"
+    elif "v=" not in url:
+        url += "&v=3.0"
+        
     if out_param:
         encoded_param = urllib.parse.quote(out_param)
         if "?" in url:
@@ -23,6 +28,11 @@ def get_main_menu(out_param=""):
 
 def get_user_menu(out_param=""):
     url = WEBAPP_URL
+    if "?" not in url:
+        url += "?v=3.0"
+    elif "v=" not in url:
+        url += "&v=3.0"
+        
     if out_param:
         encoded_param = urllib.parse.quote(out_param)
         if "?" in url:
