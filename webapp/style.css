@@ -198,6 +198,50 @@ body {
     font-weight: bold;
 }
 
+/* Social Proof Block */
+.social-proof-block {
+    max-width: 480px;
+    margin: 24px 16px;
+    background-color: #fff8f0;
+    border: 1px solid #ffe0b2;
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.social-proof-stars {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.social-proof-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-color);
+    margin-bottom: 6px;
+}
+
+.social-proof-desc {
+    font-size: 14px;
+    color: var(--hint-color);
+    margin-bottom: 16px;
+}
+
+.social-proof-btn {
+    display: inline-block;
+    background-color: #2AABEE;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px 24px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(42, 171, 238, 0.3);
+}
+
 /* Kontakt qismi */
 .contact-info {
     text-align: center;
