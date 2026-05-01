@@ -7,7 +7,6 @@ import keyboards as kb
 import json
 import html
 import logging
-import re
 
 logger = logging.getLogger(__name__)
 MAX_QTY_PER_ITEM = 1000
@@ -38,13 +37,8 @@ def _contact_links():
     if username_clean.startswith("@"):
         username_clean = username_clean[1:]
 
-    phone_digits = re.sub(r"[^\d+]", "", CONTACT_PHONE)
-    if phone_digits and not phone_digits.startswith("+"):
-        phone_digits = f"+{phone_digits}"
-
     tg_url = f"https://t.me/{username_clean}" if username_clean else None
-    tel_url = f"tel:{phone_digits}" if phone_digits else None
-    return tg_url, tel_url
+    return tg_url
 
 router = Router()
 
@@ -265,12 +259,10 @@ async def order_status_callback(callback: CallbackQuery):
                 f"📞 {html.escape(CONTACT_PHONE)}\n"
                 f"👤 {html.escape(CONTACT_USERNAME)}"
             )
-            tg_url, tel_url = _contact_links()
+            tg_url = _contact_links()
             row = []
             if tg_url:
                 row.append(InlineKeyboardButton(text="💬 Telegram", url=tg_url))
-            if tel_url:
-                row.append(InlineKeyboardButton(text="📞 Qo'ng'iroq qilish", url=tel_url))
             customer_kb = InlineKeyboardMarkup(inline_keyboard=[row]) if row else None
 
         await callback.bot.send_message(
