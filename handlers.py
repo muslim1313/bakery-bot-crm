@@ -6,6 +6,30 @@ import database as db
 import keyboards as kb
 import json
 import html
+import logging
+
+logger = logging.getLogger(__name__)
+MAX_QTY_PER_ITEM = 1000
+
+
+def _is_admin(user_id: int) -> bool:
+    return str(user_id) == str(ADMIN_ID)
+
+
+def _normalize_text(value, fallback: str) -> str:
+    if not isinstance(value, str):
+        return fallback
+    cleaned = value.strip()
+    return cleaned if cleaned else fallback
+
+
+def _parse_float(value):
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 router = Router()
 
@@ -47,30 +71,57 @@ async def web_app_data_handler(message: Message, bot: Bot):
     try:
         data = json.loads(message.web_app_data.data)
         cart = data.get("cart", {})
-        phone = data.get("phone", "Noma'lum")
-        client_name = data.get("name", message.from_user.full_name)
-        store_name = data.get("store", "Noma'lum")
-        lat = data.get("lat")
-        lon = data.get("lon")
+        if not isinstance(cart, dict) or not cart:
+            await message.answer("⚠️ Savatcha bo'sh yoki noto'g'ri.")
+            return
+
+        phone = _normalize_text(data.get("phone"), "Noma'lum")
+        client_name = _normalize_text(data.get("name"), message.from_user.full_name or "Noma'lum")
+        store_name = _normalize_text(data.get("store"), "Noma'lum")
+        lat = _parse_float(data.get("lat"))
+        lon = _parse_float(data.get("lon"))
 
         total_cost = 0
         total_revenue = 0
         order_details = ""
+        clean_cart = {}
+
+        inventory = await db.get_inventory()
+        stock_map = {item["product_id"]: bool(item["in_stock"]) for item in inventory}
 
         for p_id, qty in cart.items():
             product = PRODUCTS_PRICING.get(p_id)
-            if product:
-                cost = product["cost"] * qty
-                sell = product["sell"] * qty
-                total_cost += cost
-                total_revenue += sell
-                order_details += f"▫️ {product['name']}: {qty} dona\n"
+            if not product:
+                continue
+
+            try:
+                qty_int = int(qty)
+            except (TypeError, ValueError):
+                continue
+
+            if qty_int < 1 or qty_int > MAX_QTY_PER_ITEM:
+                continue
+
+            if not stock_map.get(p_id, True):
+                await message.answer(f"⚠️ {product['name']} hozir omborda yo'q. Iltimos savatchani yangilang.")
+                return
+
+            clean_cart[p_id] = qty_int
+            cost = product["cost"] * qty_int
+            sell = product["sell"] * qty_int
+            total_cost += cost
+            total_revenue += sell
+            order_details += f"▫️ {product['name']}: {qty_int} dona\n"
+
+        if not clean_cart:
+            await message.answer("⚠️ Savatchada yaroqli mahsulot topilmadi.")
+            return
 
         profit = total_revenue - total_cost
 
         # Save to DB
         order_id = await db.add_order(
-            message.from_user.id, client_name, phone, store_name, lat, lon, cart, 
+            message.from_user.id, client_name, phone, store_name, lat, lon, clean_cart,
             total_cost, total_revenue, profit
         )
 
@@ -92,7 +143,7 @@ async def web_app_data_handler(message: Message, bot: Bot):
             f"🏪 Do'kon: {html.escape(store_name)}\n"
         )
         
-        if lat and lon and lat != 0:
+        if lat is not None and lon is not None:
             admin_card += f"📍 Manzil: <a href='{maps_link}'>Xaritada ko'rish</a>\n\n"
         else:
             admin_card += "📍 Manzil: Yuborilmagan\n\n"
@@ -111,13 +162,14 @@ async def web_app_data_handler(message: Message, bot: Bot):
             link_preview_options=LinkPreviewOptions(is_disabled=True)
         )
 
-    except Exception as e:
-        await message.answer(f"Xatolik yuz berdi: {e}")
+    except Exception:
+        logger.exception("web_app_data_handler failed")
+        await message.answer("Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.")
 
 @router.message(F.text == "📦 Ombor boshqaruvi")
 @router.message(Command("ombor"))
 async def cmd_ombor(message: Message):
-    is_admin = str(message.from_user.id) == str(ADMIN_ID)
+    is_admin = _is_admin(message.from_user.id)
     if not is_admin:
         print(f"Unauthorized ombor access: {message.from_user.id} vs {ADMIN_ID}")
         await message.answer(f"⚠️ <b>Siz admin emassiz!</b>\nSizning ID: <code>{message.from_user.id}</code>\nUshbu IDni admin sifatida ro'yxatdan o'tkazing.")
@@ -129,7 +181,7 @@ async def cmd_ombor(message: Message):
 @router.message(F.text == "📊 Hisobotni olish")
 @router.message(Command("hisobot"))
 async def cmd_hisobot(message: Message):
-    is_admin = str(message.from_user.id) == str(ADMIN_ID)
+    is_admin = _is_admin(message.from_user.id)
     if not is_admin:
         print(f"Unauthorized hisobot access: {message.from_user.id} vs {ADMIN_ID}")
         await message.answer(f"⚠️ <b>Siz admin emassiz!</b>\nSizning ID: <code>{message.from_user.id}</code>")
@@ -139,6 +191,10 @@ async def cmd_hisobot(message: Message):
 
 @router.callback_query(F.data.startswith("toggle_"))
 async def toggle_callback(callback: CallbackQuery):
+    if not _is_admin(callback.from_user.id):
+        await callback.answer("Bu amal faqat admin uchun.", show_alert=True)
+        return
+
     product_id = callback.data.replace("toggle_", "")
     await db.toggle_stock(product_id)
     inventory = await db.get_inventory()
@@ -147,9 +203,20 @@ async def toggle_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("order_"))
 async def order_status_callback(callback: CallbackQuery):
-    data = callback.data.split("_")
-    action = data[1]
-    order_id = int(data[2])
+    if not _is_admin(callback.from_user.id):
+        await callback.answer("Bu amal faqat admin uchun.", show_alert=True)
+        return
+
+    parts = callback.data.split("_")
+    if len(parts) != 3 or parts[1] not in {"accept", "reject"}:
+        await callback.answer("Noto'g'ri amal.", show_alert=True)
+        return
+    action = parts[1]
+    try:
+        order_id = int(parts[2])
+    except ValueError:
+        await callback.answer("Noto'g'ri buyurtma ID.", show_alert=True)
+        return
     
     status = "accepted" if action == "accept" else "rejected"
     status_text = "✅ Qabul qilindi" if action == "accept" else "❌ Rad etildi"
@@ -162,10 +229,18 @@ async def order_status_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("report_"))
 async def manual_report_callback(callback: CallbackQuery, bot: Bot):
+    if not _is_admin(callback.from_user.id):
+        await callback.answer("Bu amal faqat admin uchun.", show_alert=True)
+        return
+
     period = callback.data.replace("report_", "")
+    if period not in {"daily", "monthly"}:
+        await callback.answer("Noto'g'ri hisobot turi.", show_alert=True)
+        return
     await callback.answer("Hisobot tayyorlanmoqda...")
     
     import reports as rep
+    filename = None
     try:
         summary = await db.get_summary(period)
         if summary['count'] == 0:
@@ -190,8 +265,16 @@ async def manual_report_callback(callback: CallbackQuery, bot: Bot):
             )
         else:
             await callback.message.answer("Xatolik: Hisobot faylini yaratib bo'lmadi.")
-    except Exception as e:
-        await callback.message.answer(f"Xatolik: {e}")
+    except Exception:
+        logger.exception("manual_report_callback failed")
+        await callback.message.answer("Xatolik: Hisobotni yaratishda muammo bo'ldi.")
+    finally:
+        if filename:
+            try:
+                import os
+                os.remove(filename)
+            except OSError:
+                logger.warning("Failed to remove report file: %s", filename)
 
 @router.inline_query()
 async def inline_share_handler(inline_query: InlineQuery):

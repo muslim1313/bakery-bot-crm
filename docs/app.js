@@ -1,5 +1,8 @@
 const tg = window.Telegram?.WebApp;
-if (tg) tg.expand();
+if (tg) {
+    tg.ready();
+    tg.expand();
+}
 
 const products = [
     { id: "Pechini 1", name: "Taplyonniy", price: 45000, img: "assets/podium_1.png" },
@@ -12,6 +15,7 @@ const products = [
 
 let cart = {};
 let outOfStock = [];
+let isSubmitting = false;
 
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -208,27 +212,55 @@ function renderCartItems() {
 }
 
 document.getElementById('submitOrder').onclick = () => {
-    const name = document.getElementById('userName').value;
-    const phone = document.getElementById('userPhone').value;
-    const store = document.getElementById('userStore').value;
+    if (isSubmitting) return;
+
+    const submitBtn = document.getElementById('submitOrder');
+    const name = document.getElementById('userName').value.trim();
+    const phone = document.getElementById('userPhone').value.trim();
+    const store = document.getElementById('userStore').value.trim();
+
+    if (Object.keys(cart).length === 0) {
+        alert("Savatcha bo'sh. Avval mahsulot tanlang.");
+        return;
+    }
 
     if (!name || !phone || !store) {
         alert("Iltimos, barcha maydonlarni to'ldiring!");
         return;
     }
 
+    if (!tg) {
+        alert("Buyurtma yuborish faqat Telegram ichida ishlaydi.");
+        return;
+    }
+
     localStorage.setItem('bakery_name', name);
     localStorage.setItem('bakery_phone', phone);
     localStorage.setItem('bakery_store', store);
+    isSubmitting = true;
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Yuborilmoqda...";
 
     navigator.geolocation.getCurrentPosition(
-        (pos) => sendOrder(pos.coords.latitude, pos.coords.longitude, name, phone, store),
-        () => sendOrder(0, 0, name, phone, store),
+        (pos) => sendOrder(pos.coords.latitude, pos.coords.longitude, name, phone, store, submitBtn),
+        () => sendOrder(0, 0, name, phone, store, submitBtn),
         { timeout: 5000 }
     );
 };
 
-function sendOrder(lat, lon, name, phone, store) {
+function sendOrder(lat, lon, name, phone, store, submitBtn) {
     const orderData = { cart, name, phone, store, lat, lon };
-    if (tg) tg.sendData(JSON.stringify(orderData));
+    try {
+        tg.sendData(JSON.stringify(orderData));
+        modal.classList.add('hidden');
+        cart = {};
+        updateCartUI();
+        renderProducts();
+    } finally {
+        isSubmitting = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Tasdiqlash";
+        }
+    }
 }

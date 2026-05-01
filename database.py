@@ -5,6 +5,22 @@ import os
 
 DB_PATH = os.getenv("DB_PATH", "orders.db")
 
+
+def _summary_query(period: str):
+    if period == 'daily':
+        date_filter = datetime.now().strftime('%Y-%m-%d')
+        return (
+            "SELECT * FROM orders WHERE status = 'accepted' AND date(created_at, 'localtime') = ?",
+            (date_filter,),
+        )
+    if period == 'monthly':
+        date_filter = datetime.now().strftime('%Y-%m')
+        return (
+            "SELECT * FROM orders WHERE status = 'accepted' AND strftime('%Y-%m', created_at, 'localtime') = ?",
+            (date_filter,),
+        )
+    raise ValueError("Invalid period. Use 'daily' or 'monthly'.")
+
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         # Orders table with both Store and Location
@@ -82,16 +98,11 @@ async def toggle_stock(product_id: str):
 
 async def get_summary(period='daily'):
     """period: 'daily' or 'monthly'"""
-    if period == 'daily':
-        date_filter = datetime.now().strftime('%Y-%m-%d')
-        sql = f"SELECT * FROM orders WHERE status = 'accepted' AND date(created_at, 'localtime') = '{date_filter}'"
-    else:
-        date_filter = datetime.now().strftime('%Y-%m')
-        sql = f"SELECT * FROM orders WHERE status = 'accepted' AND strftime('%Y-%m', created_at, 'localtime') = '{date_filter}'"
+    sql, params = _summary_query(period)
         
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cursor = await db.execute(sql)
+        cursor = await db.execute(sql, params)
         rows = await cursor.fetchall()
         
     summary = {
@@ -110,15 +121,10 @@ async def get_summary(period='daily'):
     return summary
 
 async def get_detailed_orders(period='daily'):
-    if period == 'daily':
-        date_filter = datetime.now().strftime('%Y-%m-%d')
-        sql = f"SELECT * FROM orders WHERE status = 'accepted' AND date(created_at, 'localtime') = '{date_filter}'"
-    else:
-        date_filter = datetime.now().strftime('%Y-%m')
-        sql = f"SELECT * FROM orders WHERE status = 'accepted' AND strftime('%Y-%m', created_at, 'localtime') = '{date_filter}'"
+    sql, params = _summary_query(period)
         
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cursor = await db.execute(sql)
+        cursor = await db.execute(sql, params)
         rows = await cursor.fetchall()
         return [dict(row) for row in rows]

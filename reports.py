@@ -1,7 +1,7 @@
 import pandas as pd
 import database as db
 from datetime import datetime
-import os
+import uuid
 
 async def generate_excel_report(period='daily'):
     orders = await db.get_detailed_orders(period)
@@ -28,7 +28,7 @@ async def generate_excel_report(period='daily'):
         
         try:
             sana_val = datetime.strptime(o['created_at'], "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y")
-        except:
+        except (ValueError, TypeError):
             sana_val = str(o['created_at'])[:10]
 
         report_data.append({
@@ -65,8 +65,8 @@ async def generate_excel_report(period='daily'):
         df = pd.concat([df, pd.DataFrame([totals_row])], ignore_index=True)
     
     # Save file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    filename = f"report_{period}_{timestamp}.xlsx"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"report_{period}_{timestamp}_{uuid.uuid4().hex[:8]}.xlsx"
     
     with pd.ExcelWriter(filename, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Hisobot')
