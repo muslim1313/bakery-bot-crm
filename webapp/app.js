@@ -42,6 +42,7 @@ window.onload = () => {
     
     if (shareBtn) {
         shareBtn.onclick = async () => {
+            alert("Tugma ishladi! Kesh yangilandi!"); // ← test uchun
             console.log("Share bosildi!"); 
             const shareUrl = 'https://t.me/SaxovataBaraka_buyurtma_bot';
             const shareText = 'Mazali va hamyonbop pishiriqlar buyurtma berish uchun bot 🍪';
