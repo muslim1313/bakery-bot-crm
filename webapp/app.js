@@ -38,12 +38,34 @@ window.onload = () => {
 
     // Ulashish tugmasi
     const shareBtn = document.getElementById('shareBtn');
-    console.log("shareBtn:", shareBtn); // ← bor yoki yo'qligini tekshirish
+    console.log("shareBtn:", shareBtn); 
     
     if (shareBtn) {
-        shareBtn.onclick = () => {
-            console.log("Share bosildi!"); // ← bosilganini tekshirish
-            tg.openLink('https://t.me/share/url?url=https%3A%2F%2Ft.me%2FSaxovataBaraka_buyurtma_bot&text=Mazali%20va%20hamyonbop%20pishiriqlar%20%F0%9F%8D%AA');
+        shareBtn.onclick = async () => {
+            console.log("Share bosildi!"); 
+            const shareUrl = 'https://t.me/SaxovataBaraka_buyurtma_bot';
+            const shareText = 'Mazali va hamyonbop pishiriqlar buyurtma berish uchun bot 🍪';
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Saxovat Baraka',
+                        text: shareText,
+                        url: shareUrl
+                    });
+                    return;
+                } catch (err) {
+                    console.log('Navigator share xatolik:', err);
+                }
+            }
+
+            // Agar navigator.share ishlamasa yoki kompyuter bo'lsa (Fallback)
+            const tgUrl = 'https://t.me/share/url?url=https%3A%2F%2Ft.me%2FSaxovataBaraka_buyurtma_bot&text=Mazali%20va%20hamyonbop%20pishiriqlar%20%F0%9F%8D%AA';
+            try {
+                tg.openLink(tgUrl);
+            } catch(e) {
+                window.open(tgUrl, '_blank');
+            }
         };
     }
 
