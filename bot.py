@@ -3,6 +3,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault, BotCommandScopeChat, MenuButtonDefault
+from aiogram.exceptions import TelegramConflictError
 
 import config
 from handlers import router
@@ -57,9 +58,14 @@ async def main():
 
     logging.info("Bot is starting...")
     
-    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.delete_webhook(drop_pending_updates=False)
     try:
         await dp.start_polling(bot)
+    except TelegramConflictError:
+        logging.error(
+            "Polling conflict: boshqa instansiya allaqachon getUpdates ishlatyapti. "
+            "Iltimos botni faqat bitta joyda ishga tushiring."
+        )
     finally:
         await bot.session.close()
 
