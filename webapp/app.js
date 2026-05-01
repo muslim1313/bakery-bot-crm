@@ -1,5 +1,5 @@
-const tg = window.Telegram.WebApp;
-tg.expand();
+const tg = window.Telegram?.WebApp;
+if (tg) tg.expand();
 
 const products = [
     { id: "Pechini 1", name: "Taplyonniy", price: 45000, img: "assets/podium_1.png" },
@@ -38,31 +38,22 @@ window.onload = () => {
 
     const shareBtn = document.getElementById('shareBtn');
     if (shareBtn) {
-        shareBtn.addEventListener('click', async () => {
+        shareBtn.addEventListener('click', (event) => {
             const shareUrl = 'https://t.me/SaxovataBaraka_buyurtma_bot';
             const shareText = "Mazali va hamyonbop pishiriqlar buyurtma berish uchun bot";
             const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
 
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: 'Saxovat Baraka',
-                        text: shareText,
-                        url: shareUrl
-                    });
-                    return;
-                } catch (err) {
-                    console.log('Navigator share bekor qilindi yoki xatolik:', err);
-                }
-            }
-
             try {
                 tg.openTelegramLink(tgShareUrl);
+                event.preventDefault();
+                return;
             } catch (err) {
                 try {
                     tg.openLink(tgShareUrl);
+                    event.preventDefault();
+                    return;
                 } catch (fallbackErr) {
-                    window.open(tgShareUrl, '_blank');
+                    // href fallback ishlaydi
                 }
             }
         });
@@ -152,7 +143,7 @@ function updateQty(id, delta) {
     if (cart[id] <= 0) delete cart[id];
     updateCartUI();
     renderProducts();
-    try { tg.HapticFeedback.impactOccurred('light'); } catch(e){}
+    try { tg?.HapticFeedback?.impactOccurred('light'); } catch(e){}
 }
 
 function updateCartUI() {
@@ -239,5 +230,5 @@ document.getElementById('submitOrder').onclick = () => {
 
 function sendOrder(lat, lon, name, phone, store) {
     const orderData = { cart, name, phone, store, lat, lon };
-    tg.sendData(JSON.stringify(orderData));
+    if (tg) tg.sendData(JSON.stringify(orderData));
 }
