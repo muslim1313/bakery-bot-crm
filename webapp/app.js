@@ -36,16 +36,12 @@ window.onload = () => {
     if (savedPhone) document.getElementById('userPhone').value = savedPhone;
     if (savedStore) document.getElementById('userStore').value = savedStore;
 
-    // Ulashish tugmasi
     const shareBtn = document.getElementById('shareBtn');
-    console.log("shareBtn:", shareBtn); 
-    
     if (shareBtn) {
-        shareBtn.onclick = async () => {
-            alert("Tugma ishladi! Kesh yangilandi!"); // ← test uchun
-            console.log("Share bosildi!"); 
+        shareBtn.addEventListener('click', async () => {
             const shareUrl = 'https://t.me/SaxovataBaraka_buyurtma_bot';
-            const shareText = 'Mazali va hamyonbop pishiriqlar buyurtma berish uchun bot 🍪';
+            const shareText = "Mazali va hamyonbop pishiriqlar buyurtma berish uchun bot";
+            const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
 
             if (navigator.share) {
                 try {
@@ -56,18 +52,20 @@ window.onload = () => {
                     });
                     return;
                 } catch (err) {
-                    console.log('Navigator share xatolik:', err);
+                    console.log('Navigator share bekor qilindi yoki xatolik:', err);
                 }
             }
 
-            // Agar navigator.share ishlamasa yoki kompyuter bo'lsa (Fallback)
-            const tgUrl = 'https://t.me/share/url?url=https%3A%2F%2Ft.me%2FSaxovataBaraka_buyurtma_bot&text=Mazali%20va%20hamyonbop%20pishiriqlar%20%F0%9F%8D%AA';
             try {
-                tg.openLink(tgUrl);
-            } catch(e) {
-                window.open(tgUrl, '_blank');
+                tg.openTelegramLink(tgShareUrl);
+            } catch (err) {
+                try {
+                    tg.openLink(tgShareUrl);
+                } catch (fallbackErr) {
+                    window.open(tgShareUrl, '_blank');
+                }
             }
-        };
+        });
     }
 
     renderSlider();

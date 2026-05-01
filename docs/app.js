@@ -36,6 +36,38 @@ window.onload = () => {
     if (savedPhone) document.getElementById('userPhone').value = savedPhone;
     if (savedStore) document.getElementById('userStore').value = savedStore;
 
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async () => {
+            const shareUrl = 'https://t.me/SaxovataBaraka_buyurtma_bot';
+            const shareText = "Mazali va hamyonbop pishiriqlar buyurtma berish uchun bot";
+            const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Saxovat Baraka',
+                        text: shareText,
+                        url: shareUrl
+                    });
+                    return;
+                } catch (err) {
+                    console.log('Navigator share bekor qilindi yoki xatolik:', err);
+                }
+            }
+
+            try {
+                tg.openTelegramLink(tgShareUrl);
+            } catch (err) {
+                try {
+                    tg.openLink(tgShareUrl);
+                } catch (fallbackErr) {
+                    window.open(tgShareUrl, '_blank');
+                }
+            }
+        });
+    }
+
     renderSlider();
     renderProducts();
     startAutoSlide();
