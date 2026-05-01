@@ -36,6 +36,19 @@ window.onload = () => {
     if (savedPhone) document.getElementById('userPhone').value = savedPhone;
     if (savedStore) document.getElementById('userStore').value = savedStore;
 
+    // Ulashish tugmasi
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn) {
+        shareBtn.onclick = () => {
+            const url = 'https://t.me/share/url?url=https%3A%2F%2Ft.me%2FSaxovataBaraka_buyurtma_bot&text=Mazali%20va%20hamyonbop%20pishiriqlar%20%F0%9F%8D%AA';
+            try {
+                tg.openTelegramLink(url);
+            } catch(e) {
+                window.open(url, '_blank');
+            }
+        };
+    }
+
     renderSlider();
     renderProducts();
     startAutoSlide();
