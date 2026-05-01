@@ -2,7 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import database as db
 import reports as rep
-from config import ADMIN_ID
+from config import ADMIN_ID, GROUP_ID
 from aiogram.types import FSInputFile
 import logging
 import os
@@ -10,10 +10,10 @@ import os
 def setup_scheduler(bot):
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
-    # Daily Report at 20:00
+    # Daily Report at 01:00
     scheduler.add_job(
         send_auto_report,
-        CronTrigger(hour=20, minute=0),
+        CronTrigger(hour=1, minute=0),
         args=[bot, 'daily'],
         id='daily_report'
     )
@@ -33,8 +33,8 @@ async def send_auto_report(bot, period):
     summary = await db.get_summary(period)
     
     if summary['count'] == 0:
-        if ADMIN_ID:
-            await bot.send_message(ADMIN_ID, f"⚠️ {period.capitalize()} hisobot: Bugun savdo bo'lmadi.")
+        if GROUP_ID:
+            await bot.send_message(GROUP_ID, f"⚠️ {period.capitalize()} hisobot: Bugun savdo bo'lmadi.")
         return
 
     text = (
@@ -46,10 +46,10 @@ async def send_auto_report(bot, period):
     )
     
     filename = await rep.generate_excel_report(period)
-    if filename and ADMIN_ID:
+    if filename and GROUP_ID:
         try:
             await bot.send_document(
-                ADMIN_ID, 
+                GROUP_ID, 
                 FSInputFile(filename), 
                 caption=text, 
                 parse_mode="HTML"
