@@ -84,6 +84,14 @@ async def update_order_status(order_id: int, status: str):
         await db.execute('UPDATE orders SET status = ? WHERE id = ?', (status, order_id))
         await db.commit()
 
+
+async def get_order_by_id(order_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
 async def get_inventory():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row

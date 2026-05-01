@@ -1,7 +1,7 @@
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, LinkPreviewOptions, InlineQuery, InlineQueryResultPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
-from config import ADMIN_ID, GROUP_ID, PRODUCTS_PRICING
+from config import ADMIN_ID, GROUP_ID, PRODUCTS_PRICING, CONTACT_PHONE, CONTACT_USERNAME
 import database as db
 import keyboards as kb
 import json
@@ -127,10 +127,10 @@ async def web_app_data_handler(message: Message, bot: Bot):
 
         # Send info to User
         await message.answer(
-            f"✅ <b>Buyurtmangiz qabul qilindi!</b>\n\n"
+            f"⏳ <b>Buyurtmangiz kutish jarayonida.</b>\n\n"
             f"ID: #{order_id}\n"
             f"Jami: {total_revenue:,} so'm\n\n"
-            f"Tez orada operatorimiz siz bilan bog'lanadi.",
+            f"Holat: <b>Kutish...</b>",
             parse_mode="HTML"
         )
 
@@ -220,11 +220,40 @@ async def order_status_callback(callback: CallbackQuery):
     
     status = "accepted" if action == "accept" else "rejected"
     status_text = "✅ Qabul qilindi" if action == "accept" else "❌ Rad etildi"
-    
+    order = await db.get_order_by_id(order_id)
+    if not order:
+        await callback.answer("Buyurtma topilmadi.", show_alert=True)
+        return
+
     await db.update_order_status(order_id, status)
     
     new_text = callback.message.html_text + f"\n\n🏁 <b>Status: {status_text}</b>"
     await callback.message.edit_text(new_text, parse_mode="HTML", reply_markup=None)
+
+    try:
+        if status == "accepted":
+            customer_text = (
+                f"✅ <b>Buyurtmangiz qabul qilindi.</b>\n\n"
+                f"ID: #{order_id}\n"
+                f"Holat: <b>Buyurtma qabul qilindi</b>"
+            )
+        else:
+            customer_text = (
+                f"❌ <b>Uzur, buyurtmangiz qabul qilinmadi.</b>\n\n"
+                f"ID: #{order_id}\n"
+                f"Ma'lumot uchun bog'laning:\n"
+                f"📞 {html.escape(CONTACT_PHONE)}\n"
+                f"👤 {html.escape(CONTACT_USERNAME)}"
+            )
+
+        await callback.bot.send_message(
+            int(order["telegram_id"]),
+            customer_text,
+            parse_mode="HTML"
+        )
+    except Exception:
+        logger.exception("Failed to send order status message to customer for order_id=%s", order_id)
+
     await callback.answer(f"Buyurtma {status_text}")
 
 @router.callback_query(F.data.startswith("report_"))

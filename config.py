@@ -21,6 +21,10 @@ PAYME_CARD = os.getenv("PAYME_CARD", "")
 # Miniapp Ssilkasi (Netlify yoki Vercel). Hozircha namuna uchun qilingan.
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://muslim1313.github.io/bakery-bot-crm/?v=3.0").strip()
 
+# Bog'lanish ma'lumotlari (webapp pastki qismidagi kontaktlar bilan bir xil)
+CONTACT_PHONE = os.getenv("CONTACT_PHONE", "+998200131394").strip()
+CONTACT_USERNAME = os.getenv("CONTACT_USERNAME", "@muslimm1313").strip()
+
 # Pishiriqlar narxlari va foyda hisoblash uchun ma'lumotlar
 PRODUCTS_PRICING = {
     "Pechini 1": {"name": "Taplyonniy", "cost": 37500, "sell": 45000},
