@@ -209,3 +209,8 @@ function sendOrder(lat, lon, name, phone, store) {
     const orderData = { cart, name, phone, store, lat, lon };
     tg.sendData(JSON.stringify(orderData));
 }
+
+// Ulashish tugmasi
+document.getElementById('shareBtn').onclick = () => {
+    tg.openTelegramLink('https://t.me/share/url?url=https://t.me/SaxovataBaraka_buyurtma_bot&text=Mazali%20va%20hamyonbop%20pishiriqlar%20buyurtma%20berish%20uchun%20bot%20%F0%9F%8D%AA');
+};
