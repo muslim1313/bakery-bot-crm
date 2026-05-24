@@ -10,10 +10,10 @@ import os
 def setup_scheduler(bot):
     scheduler = AsyncIOScheduler(timezone='Asia/Tashkent')
     
-    # Daily Report at 01:00
+    # Daily Report at 21:00
     scheduler.add_job(
         send_auto_report,
-        CronTrigger(hour=1, minute=0),
+        CronTrigger(hour=21, minute=0),
         args=[bot, 'daily'],
         id='daily_report'
     )
@@ -33,8 +33,7 @@ async def send_auto_report(bot, period):
     summary = await db.get_summary(period)
     
     if summary['count'] == 0:
-        if GROUP_ID:
-            await bot.send_message(GROUP_ID, f"⚠️ {period.capitalize()} hisobot: Bugun savdo bo'lmadi.")
+        logging.info(f"No orders for {period} report. Skipping...")
         return
 
     text = (
@@ -46,10 +45,11 @@ async def send_auto_report(bot, period):
     )
     
     filename = await rep.generate_excel_report(period)
-    if filename and GROUP_ID:
+    recipient_id = GROUP_ID if GROUP_ID else ADMIN_ID
+    if filename and recipient_id:
         try:
             await bot.send_document(
-                GROUP_ID, 
+                recipient_id, 
                 FSInputFile(filename), 
                 caption=text, 
                 parse_mode="HTML"

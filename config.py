@@ -18,7 +18,7 @@ GROUP_ID = os.getenv("GROUP_ID", ADMIN_ID)
 CLICK_P2P_LINK = os.getenv("CLICK_P2P_LINK", "")
 PAYME_CARD = os.getenv("PAYME_CARD", "")
 
-# Miniapp Ssilkasi (Netlify yoki Vercel). Hozircha namuna uchun qilingan.
+# Miniapp ssilkasi (Netlify yoki Vercel / GitHub Pages).
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://muslim1313.github.io/bakery-bot-crm/?v=3.0").strip()
 
 # Bog'lanish ma'lumotlari (webapp pastki qismidagi kontaktlar bilan bir xil)

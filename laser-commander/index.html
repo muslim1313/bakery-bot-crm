@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="uz" class="lc-loading">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Universal AI Laser Commander</title>
+    <meta name="description" content="Object-to-CAD, uskuna profillari va aqlli kesish parametrlari">
+    <link rel="stylesheet" href="style.css?v=laser-1">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="loader" class="lc-loader" aria-hidden="true">
+        <div class="lc-loader__ring"></div>
+        <p>Yuklanmoqda…</p>
+    </div>
+
+    <div class="lc-shell">
+        <header class="lc-header">
+            <div class="lc-brand">
+                <span class="lc-brand__mark" aria-hidden="true"></span>
+                <div>
+                    <h1 class="lc-brand__title">Laser Commander</h1>
+                    <p class="lc-brand__tag">Universal AI · Phase 1 shell</p>
+                </div>
+            </div>
+            <span class="lc-version-pill" title="Phase 1 UI">v0.1 · Phase 1</span>
+        </header>
+
+        <nav class="lc-nav" aria-label="Asosiy menyu">
+            <button type="button" class="lc-nav__btn lc-nav__btn--active" data-nav="dashboard" aria-current="page">Bosh sahifa</button>
+            <button type="button" class="lc-nav__btn" data-nav="equipment">Uskuna</button>
+            <button type="button" class="lc-nav__btn" data-nav="materials">Material</button>
+            <button type="button" class="lc-nav__btn" data-nav="object-cad">Object → CAD</button>
+            <button type="button" class="lc-nav__btn" data-nav="autopilot">Auto-Pilot</button>
+        </nav>
+
+        <main class="lc-main">
+            <section class="lc-panel" data-view="dashboard">
+                <h2 class="lc-h2">Operatsion ko‘rinish</h2>
+                <p class="lc-lead">
+                    Eskiz yoki detal surati → kontur → DXF / ish stoli import.
+                    Material va quvvat bo‘yicha tavsiyalar keyingi bosqichda G-kod va CypCut oqimiga bog‘lanadi.
+                </p>
+                <div class="lc-grid-2">
+                    <article class="lc-card">
+                        <h3>Faza rejasi</h3>
+                        <ol class="lc-ol">
+                            <li><strong>Phase 1:</strong> UI, profillar, kalibratsiya kontrakti.</li>
+                            <li><strong>Phase 2:</strong> Inference, DXF encoder, ulanish shim.</li>
+                            <li><strong>Phase 3:</strong> Jonli kesish boshqaruvi va monitoring.</li>
+                        </ol>
+                    </article>
+                    <article class="lc-card lc-card--accent">
+                        <h3>Xavfsizlik</h3>
+                        <p class="lc-muted">Oldindan tekshiruvlar va gaz yo‘nalishi har safar majburiy.</p>
+                        <ul class="lc-list">
+                            <li>Kapot sensorlari va interlock</li>
+                            <li>Ko‘z himoyasi va ventilyatsiya</li>
+                            <li>Sinov kesimi kichik nogiron zonada</li>
+                        </ul>
+                    </article>
+                </div>
+            </section>
+
+            <section class="lc-panel" data-view="equipment" hidden>
+                <h2 class="lc-h2">Uskunani tanlash</h2>
+                <p class="lc-lead">
+                    Model tanlanganda ish maydoni, boshqaruv oilasi va CAD chiqishlari avtomatik moslanadi.
+                    <strong>JQLASER 1530</strong> uchun <strong>CypCut</strong> profili quyida kengaytirilgan.
+                </p>
+                <div class="lc-field">
+                    <label for="hardware-select">Faol profil</label>
+                    <select id="hardware-select" class="lc-select"></select>
+                </div>
+                <article id="hardware-detail" class="lc-card lc-card--detail"></article>
+            </section>
+
+            <section class="lc-panel" data-view="materials" hidden>
+                <h2 class="lc-h2">Material sozlamalari</h2>
+                <p class="lc-lead">
+                    Material va qalinlik bo‘yicha boshlang‘ich kesish rejimi.
+                    AI tavsiyasi hozircha heuristik; Phase 2 da model bilan almashtiriladi.
+                </p>
+                <div class="lc-form-row">
+                    <div class="lc-field">
+                        <label for="material-select">Material</label>
+                        <select id="material-select" class="lc-select"></select>
+                    </div>
+                    <div class="lc-field">
+                        <label for="thickness-input">Qalinlik (mm)</label>
+                        <input type="number" id="thickness-input" class="lc-input" min="0.1" step="0.1" value="3">
+                    </div>
+                    <div class="lc-field">
+                        <label for="power-kw-select">Nominal lazer (kW)</label>
+                        <select id="power-kw-select" class="lc-select"></select>
+                    </div>
+                </div>
+                <button type="button" id="btn-refresh-ai-params" class="lc-btn lc-btn--primary">AI tavsiyasini yangilash</button>
+
+                <article class="lc-card lc-card--smart">
+                    <header class="lc-card__head">
+                        <h3>Aqlli parametrlar</h3>
+                        <span class="lc-chip lc-chip--pulse">Demo rejimi</span>
+                    </header>
+                    <div id="smart-params-body"></div>
+                </article>
+            </section>
+
+            <section class="lc-panel" data-view="object-cad" hidden>
+                <h2 class="lc-h2">Object → CAD · masshtablash moduli</h2>
+                <p class="lc-lead">
+                    Yuklangan surat konturlari va fizik o‘lcham bilan bog‘lanadi.
+                    Kalibratsiya: ma’lum uzunlikni piksellarda ko‘rsating.
+                </p>
+
+                <div class="lc-upload">
+                    <label class="lc-upload__zone">
+                        <input type="file" id="part-photo-input" accept="image/*" hidden>
+                        <span class="lc-upload__title">Detal / eskiz fotosi</span>
+                        <span class="lc-upload__hint">PNG, JPG — Phase 2 da RAW / multispectral</span>
+                    </label>
+                </div>
+
+                <div class="lc-form-row">
+                    <div class="lc-field">
+                        <label for="ref-mm">Etalon uzunlik (mm)</label>
+                        <input type="number" id="ref-mm" class="lc-input" placeholder="masalan 50" min="0">
+                    </div>
+                    <div class="lc-field">
+                        <label for="ref-px">Shu uzunlik suratda (px)</label>
+                        <input type="number" id="ref-px" class="lc-input" placeholder="masalan 240" min="1">
+                    </div>
+                </div>
+
+                <button type="button" id="btn-run-analysis" class="lc-btn lc-btn--primary">Tahlil (stub) ishga tushirish</button>
+                <p id="object-cad-status" class="lc-status" aria-live="polite"></p>
+                <div id="object-cad-detail" class="lc-sub"></div>
+
+                <article class="lc-card">
+                    <h3>Konveyor bosqichlari</h3>
+                    <ul id="pipeline-overview" class="lc-pipeline"></ul>
+                </article>
+            </section>
+
+            <section class="lc-panel" data-view="autopilot" hidden>
+                <h2 class="lc-h2">Auto-Pilot kesish</h2>
+                <p class="lc-lead">
+                    Uskunaga to‘g‘ridan-to‘g‘ri buyruq — ulanish holati va watchdog keyingi bosqichda.
+                </p>
+                <div class="lc-connect-row">
+                    <span id="conn-chip" class="lc-chip lc-chip--bad">Ulanmagan</span>
+                    <span class="lc-muted">Bridge: Phase 2</span>
+                </div>
+                <div class="lc-card lc-card--ghost">
+                    <p><strong>Sessiya:</strong> faol profil va material parametrlari xotirada.</p>
+                    <button type="button" class="lc-btn lc-btn--danger" disabled>Kesishni boshlash (disable)</button>
+                    <p class="lc-disclaimer">Jonli boshqaruv faqat sinov zonasi va qoidalari tasdiqlangach yoqiladi.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer class="lc-footer">
+            <span>Universal AI Laser Commander</span>
+            <span class="lc-footer__sep">·</span>
+            <span>JQLASER 1530 / CypCut profili mavjud</span>
+        </footer>
+    </div>
+
+    <script type="module" src="laser-app.js?v=laser-1"></script>
+</body>
+</html>

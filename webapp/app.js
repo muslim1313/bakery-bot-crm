@@ -20,19 +20,11 @@ let isSubmitting = false;
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const stockParam = urlParams.get('out_of_stock');
-    
-    // DEBUG - konsolda tekshirish uchun
-    console.log("RAW out_of_stock param:", stockParam);
-    console.log("Full URL:", window.location.href);
 
     if (stockParam) {
         outOfStock = stockParam.split(',').map(id => decodeURIComponent(id.trim()));
     }
-    
-    console.log("outOfStock array:", outOfStock);
-    console.log("products ids:", products.map(p => p.id));
 
-    // Load saved data
     const savedName = localStorage.getItem('bakery_name');
     const savedPhone = localStorage.getItem('bakery_phone');
     const savedStore = localStorage.getItem('bakery_store');
@@ -46,18 +38,21 @@ window.onload = () => {
             const shareUrl = 'https://t.me/SaxovataBaraka_buyurtma_bot';
             const shareText = "Mazali va hamyonbop pishiriqlar buyurtma berish uchun bot";
             const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+            const deepShareUrl = `tg://msg_url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
 
-            try {
-                tg.openTelegramLink(tgShareUrl);
-                event.preventDefault();
-                return;
-            } catch (err) {
+            if (tg) {
                 try {
-                    tg.openLink(tgShareUrl);
+                    tg.openTelegramLink(deepShareUrl);
                     event.preventDefault();
                     return;
-                } catch (fallbackErr) {
-                    // href fallback ishlaydi
+                } catch (err) {
+                    try {
+                        tg.openLink(tgShareUrl);
+                        event.preventDefault();
+                        return;
+                    } catch (fallbackErr) {
+                        // let standard href handle it
+                    }
                 }
             }
         });
@@ -97,7 +92,6 @@ function renderProducts() {
     products.forEach(p => {
         const isOut = outOfStock.includes(p.id);
 
-        // Agar mahsulot out_of_stock bo'lsa, cartdan o'chirib yuborish
         if (isOut && cart[p.id]) {
             delete cart[p.id];
             updateCartUI();
@@ -106,20 +100,16 @@ function renderProducts() {
         const card = document.createElement('div');
         card.className = `product-card ${isOut ? 'out-of-stock' : ''}`;
 
-        // Tugma mantiqini aniq ajratish
         let qtyHTML;
         if (isOut) {
-            // "Hozircha yo'q" matni — tugma yo'q
             qtyHTML = `<span style="color: #ff4d4d; font-weight: 800; font-size: 13px;">Hozircha yo'q</span>`;
         } else if (cart[p.id]) {
-            // Cartda bor — +/- tugmalar
             qtyHTML = `
                 <button class="qty-btn" onclick="updateQty('${p.id}', -1)">-</button>
                 <span>${cart[p.id]}</span>
                 <button class="qty-btn" onclick="updateQty('${p.id}', 1)">+</button>
             `;
         } else {
-            // Oddiy "Qo'shish" tugmasi
             qtyHTML = `<button class="premium-btn" onclick="updateQty('${p.id}', 1)" style="width:100%; padding: 6px;">Qo'shish</button>`;
         }
 
@@ -130,9 +120,7 @@ function renderProducts() {
             <div class="product-info">
                 <h3>${p.name}</h3>
                 <p class="price">${p.price.toLocaleString()} so'm</p>
-                <div class="qty-control">
-                    ${qtyHTML}
-                </div>
+                <div class="qty-control">${qtyHTML}</div>
             </div>
         `;
         grid.appendChild(card);
@@ -140,21 +128,20 @@ function renderProducts() {
 }
 
 function updateQty(id, delta) {
-    // Out of stock mahsulotga qo'shib bo'lmaydi
     if (outOfStock.includes(id)) return;
-    
+
     cart[id] = (cart[id] || 0) + delta;
     if (cart[id] <= 0) delete cart[id];
     updateCartUI();
     renderProducts();
-    try { tg?.HapticFeedback?.impactOccurred('light'); } catch(e){}
+    try { tg?.HapticFeedback?.impactOccurred('light'); } catch (e) {}
 }
 
 function updateCartUI() {
     const cartBar = document.getElementById('cartBar');
     const countSpan = document.getElementById('cartCount');
     const totalSpan = document.getElementById('cartTotal');
-    
+
     let totalItems = 0;
     let totalPrice = 0;
     for (const id in cart) {
@@ -162,7 +149,7 @@ function updateCartUI() {
         totalItems += cart[id];
         totalPrice += p.price * cart[id];
     }
-    
+
     if (totalItems > 0) {
         cartBar.classList.remove('hidden');
         countSpan.innerText = `${totalItems} dona mahsulot`;
@@ -172,12 +159,13 @@ function updateCartUI() {
     }
 }
 
-// Auto Slide
 let slideInterval;
 function autoSlide() {
     const slider = document.getElementById('topSlider');
     if (!slider) return;
-    const slideWidth = slider.querySelector('.slide-item').offsetWidth + 16;
+    const first = slider.querySelector('.slide-item');
+    if (!first) return;
+    const slideWidth = first.offsetWidth + 16;
     if (slider.scrollLeft + slider.clientWidth >= slider.scrollWidth - 10) {
         slider.scrollTo({ left: 0, behavior: 'smooth' });
     } else {
@@ -189,7 +177,6 @@ function startAutoSlide() {
     slideInterval = setInterval(autoSlide, 3000);
 }
 
-// Modal
 const modal = document.getElementById('orderModal');
 document.getElementById('orderBtn').onclick = () => {
     renderCartItems();
