@@ -7,19 +7,24 @@ DB_PATH = os.getenv("DB_PATH", "orders.db")
 
 
 def _summary_query(period: str):
+    import pytz
+    tashkent_tz = pytz.timezone('Asia/Tashkent')
+    now_tashkent = datetime.now(tashkent_tz)
+
     if period == 'daily':
-        date_filter = datetime.now().strftime('%Y-%m-%d')
+        date_filter = now_tashkent.strftime('%Y-%m-%d')
         return (
-            "SELECT * FROM orders WHERE status = 'accepted' AND date(created_at, 'localtime') = ?",
+            "SELECT * FROM orders WHERE status = 'accepted' AND date(created_at) = ?",
             (date_filter,),
         )
     if period == 'monthly':
-        date_filter = datetime.now().strftime('%Y-%m')
+        date_filter = now_tashkent.strftime('%Y-%m')
         return (
-            "SELECT * FROM orders WHERE status = 'accepted' AND strftime('%Y-%m', created_at, 'localtime') = ?",
+            "SELECT * FROM orders WHERE status = 'accepted' AND strftime('%Y-%m', created_at) = ?",
             (date_filter,),
         )
     raise ValueError("Invalid period. Use 'daily' or 'monthly'.")
+
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -71,13 +76,19 @@ async def init_db():
         await db.commit()
 
 async def add_order(telegram_id: int, name: str, phone: str, store: str, lat: float, lon: float, cart: dict, total_cost: float, total_revenue: float, profit: float):
+    import pytz
+    from datetime import datetime
+    tashkent_tz = pytz.timezone('Asia/Tashkent')
+    now_tashkent = datetime.now(tashkent_tz).strftime('%Y-%m-%d %H:%M:%S')
+
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute('''
-            INSERT INTO orders (telegram_id, name, phone, store, location_lat, location_lon, cart_json, total_cost, total_revenue, profit, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-        ''', (telegram_id, name, phone, store, lat, lon, json.dumps(cart), total_cost, total_revenue, profit))
+            INSERT INTO orders (telegram_id, name, phone, store, location_lat, location_lon, cart_json, total_cost, total_revenue, profit, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        ''', (telegram_id, name, phone, store, lat, lon, json.dumps(cart), total_cost, total_revenue, profit, now_tashkent))
         await db.commit()
         return cursor.lastrowid
+
 
 async def update_order_status(order_id: int, status: str):
     async with aiosqlite.connect(DB_PATH) as db:

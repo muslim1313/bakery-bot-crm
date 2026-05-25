@@ -26,11 +26,28 @@ CONTACT_PHONE = os.getenv("CONTACT_PHONE", "+998200131394").strip()
 CONTACT_USERNAME = os.getenv("CONTACT_USERNAME", "@muslimm1313").strip()
 
 # Pishiriqlar narxlari va foyda hisoblash uchun ma'lumotlar
-PRODUCTS_PRICING = {
-    "Pechini 1": {"name": "Taplyonniy", "cost": 37500, "sell": 45000},
-    "Pechini 2": {"name": "Yubileyniy", "cost": 36000, "sell": 45000},
-    "Pechini 3": {"name": "Yulduz", "cost": 43500, "sell": 48000},
-    "Pechini 4": {"name": "Olmali", "cost": 50000, "sell": 60000},
-    "Pechini 5": {"name": "Pop Corn", "cost": 50000, "sell": 60000},
-    "Pechini 6": {"name": "Azbuka", "cost": 57500, "sell": 70000}
-}
+PRODUCTS_PRICING = {}
+try:
+    import json
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    json_path = os.path.join(base_dir, "webapp", "products.json")
+    with open(json_path, "r", encoding="utf-8") as f:
+        products_data = json.load(f)
+        for p in products_data:
+            PRODUCTS_PRICING[p["id"]] = {
+                "name": p["name"],
+                "cost": p["cost"],
+                "sell": p["sell"]
+            }
+except Exception as e:
+    import logging
+    logging.warning(f"Failed to load products.json, using fallback: {e}")
+    PRODUCTS_PRICING = {
+        "Pechini 1": {"name": "Taplyonniy", "cost": 37500, "sell": 45000},
+        "Pechini 2": {"name": "Yubileyniy", "cost": 36000, "sell": 45000},
+        "Pechini 3": {"name": "Yulduz", "cost": 43500, "sell": 48000},
+        "Pechini 4": {"name": "Olmali", "cost": 50000, "sell": 60000},
+        "Pechini 5": {"name": "Pop Corn", "cost": 50000, "sell": 60000},
+        "Pechini 6": {"name": "Azbuka", "cost": 57500, "sell": 70000}
+    }
+

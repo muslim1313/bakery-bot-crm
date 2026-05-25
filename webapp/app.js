@@ -4,20 +4,34 @@ if (tg) {
     tg.expand();
 }
 
-const products = [
-    { id: "Pechini 1", name: "Taplyonniy", price: 45000, img: "assets/podium_1.png" },
-    { id: "Pechini 2", name: "Yubileyniy", price: 45000, img: "assets/podium_2.png" },
-    { id: "Pechini 3", name: "Yulduz", price: 48000, img: "assets/podium_3.png" },
-    { id: "Pechini 4", name: "Olmali", price: 60000, img: "assets/podium_4.png" },
-    { id: "Pechini 5", name: "Pop Corn", price: 60000, img: "assets/podium_5.png" },
-    { id: "Pechini 6", name: "Azbuka", price: 70000, img: "assets/podium_6.png" }
-];
+let products = [];
 
 let cart = {};
 let outOfStock = [];
 let isSubmitting = false;
 
-window.onload = () => {
+window.onload = async () => {
+    try {
+        const response = await fetch('products.json');
+        const data = await response.json();
+        products = data.map(p => ({
+            id: p.id,
+            name: p.name,
+            price: p.sell,
+            img: p.img
+        }));
+    } catch (err) {
+        console.error("Failed to load products.json, using fallback", err);
+        products = [
+            { id: "Pechini 1", name: "Taplyonniy", price: 45000, img: "assets/podium_1.png" },
+            { id: "Pechini 2", name: "Yubileyniy", price: 45000, img: "assets/podium_2.png" },
+            { id: "Pechini 3", name: "Yulduz", price: 48000, img: "assets/podium_3.png" },
+            { id: "Pechini 4", name: "Olmali", price: 60000, img: "assets/podium_4.png" },
+            { id: "Pechini 5", name: "Pop Corn", price: 60000, img: "assets/podium_5.png" },
+            { id: "Pechini 6", name: "Azbuka", price: 70000, img: "assets/podium_6.png" }
+        ];
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const stockParam = urlParams.get('out_of_stock');
 

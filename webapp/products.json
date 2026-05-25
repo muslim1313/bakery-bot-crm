@@ -1,0 +1,44 @@
+[
+  {
+    "id": "Pechini 1",
+    "name": "Taplyonniy",
+    "cost": 37500,
+    "sell": 45000,
+    "img": "assets/podium_1.png"
+  },
+  {
+    "id": "Pechini 2",
+    "name": "Yubileyniy",
+    "cost": 36000,
+    "sell": 45000,
+    "img": "assets/podium_2.png"
+  },
+  {
+    "id": "Pechini 3",
+    "name": "Yulduz",
+    "cost": 43500,
+    "sell": 48000,
+    "img": "assets/podium_3.png"
+  },
+  {
+    "id": "Pechini 4",
+    "name": "Olmali",
+    "cost": 50000,
+    "sell": 60000,
+    "img": "assets/podium_4.png"
+  },
+  {
+    "id": "Pechini 5",
+    "name": "Pop Corn",
+    "cost": 50000,
+    "sell": 60000,
+    "img": "assets/podium_5.png"
+  },
+  {
+    "id": "Pechini 6",
+    "name": "Azbuka",
+    "cost": 57500,
+    "sell": 70000,
+    "img": "assets/podium_6.png"
+  }
+]

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
+
 from aiogram.types import BotCommand, BotCommandScopeDefault, BotCommandScopeChat, MenuButtonDefault
 from aiogram.exceptions import TelegramConflictError
 
@@ -23,7 +23,7 @@ async def main():
     
     # Init Bot and Dispatcher
     bot = Bot(token=config.BOT_TOKEN)
-    dp = Dispatcher(storage=MemoryStorage())
+    dp = Dispatcher()
     
     # Register handlers
     dp.include_router(router)

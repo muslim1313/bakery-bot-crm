@@ -89,6 +89,10 @@ async def web_app_data_handler(message: Message, bot: Bot):
         store_name = _normalize_text(data.get("store"), "Noma'lum")
         lat = _parse_float(data.get("lat"))
         lon = _parse_float(data.get("lon"))
+        if lat == 0.0 and lon == 0.0:
+            lat = None
+            lon = None
+
 
         total_cost = 0
         total_revenue = 0
