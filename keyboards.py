@@ -4,23 +4,13 @@ import urllib.parse
 
 def get_main_menu(out_param="", prices_param=""):
     url = WEBAPP_URL
-    if "?" not in url:
-        url += "?v=3.0"
-    elif "v=" not in url:
-        url += "&v=3.0"
-        
+    params = []
     if out_param:
-        encoded_param = urllib.parse.quote(out_param)
-        if "?" in url:
-            url += f"&out_of_stock={encoded_param}"
-        else:
-            url += f"?out_of_stock={encoded_param}"
-            
+        params.append(f"out_of_stock={urllib.parse.quote(out_param)}")
     if prices_param:
-        if "?" in url:
-            url += f"&prices={prices_param}"
-        else:
-            url += f"?prices={prices_param}"
+        params.append(f"prices={prices_param}")
+    if params:
+        url += "?" + "&".join(params)
             
     print(f"DEBUG: WebApp URL is '{url}'")
             
@@ -34,23 +24,13 @@ def get_main_menu(out_param="", prices_param=""):
 
 def get_user_menu(out_param="", prices_param=""):
     url = WEBAPP_URL
-    if "?" not in url:
-        url += "?v=3.0"
-    elif "v=" not in url:
-        url += "&v=3.0"
-        
+    params = []
     if out_param:
-        encoded_param = urllib.parse.quote(out_param)
-        if "?" in url:
-            url += f"&out_of_stock={encoded_param}"
-        else:
-            url += f"?out_of_stock={encoded_param}"
-            
+        params.append(f"out_of_stock={urllib.parse.quote(out_param)}")
     if prices_param:
-        if "?" in url:
-            url += f"&prices={prices_param}"
-        else:
-            url += f"?prices={prices_param}"
+        params.append(f"prices={prices_param}")
+    if params:
+        url += "?" + "&".join(params)
             
     print(f"DEBUG: WebApp User URL is '{url}'")
             
