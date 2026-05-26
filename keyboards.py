@@ -2,7 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from config import WEBAPP_URL
 import urllib.parse
 
-def get_main_menu(out_param=""):
+def get_main_menu(out_param="", prices_param=""):
     url = WEBAPP_URL
     if "?" not in url:
         url += "?v=3.0"
@@ -15,6 +15,12 @@ def get_main_menu(out_param=""):
             url += f"&out_of_stock={encoded_param}"
         else:
             url += f"?out_of_stock={encoded_param}"
+            
+    if prices_param:
+        if "?" in url:
+            url += f"&prices={prices_param}"
+        else:
+            url += f"?prices={prices_param}"
             
     print(f"DEBUG: WebApp URL is '{url}'")
             
@@ -26,7 +32,7 @@ def get_main_menu(out_param=""):
         resize_keyboard=True
     )
 
-def get_user_menu(out_param=""):
+def get_user_menu(out_param="", prices_param=""):
     url = WEBAPP_URL
     if "?" not in url:
         url += "?v=3.0"
@@ -39,6 +45,12 @@ def get_user_menu(out_param=""):
             url += f"&out_of_stock={encoded_param}"
         else:
             url += f"?out_of_stock={encoded_param}"
+            
+    if prices_param:
+        if "?" in url:
+            url += f"&prices={prices_param}"
+        else:
+            url += f"?prices={prices_param}"
             
     print(f"DEBUG: WebApp User URL is '{url}'")
             

@@ -46,6 +46,21 @@ window.onload = async () => {
         }
     }
 
+    // Apply pricing overrides passed from Telegram Bot
+    const pricesParam = urlParams.get('prices');
+    if (pricesParam) {
+        try {
+            const prices = JSON.parse(decodeURIComponent(pricesParam));
+            products.forEach(p => {
+                if (prices[p.id] !== undefined) {
+                    p.price = Number(prices[p.id]);
+                }
+            });
+        } catch (pricesErr) {
+            console.error("Failed to parse prices parameter", pricesErr);
+        }
+    }
+
     // Cache prefill from LocalStorage
     const savedName = localStorage.getItem('bakery_name');
     const savedPhone = localStorage.getItem('bakery_phone');

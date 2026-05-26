@@ -44,9 +44,16 @@ async def main():
                 BotCommand(command="start", description="Botni ishga tushirish"),
                 BotCommand(command="hisobot", description="Hisobotlar menyusi"),
                 BotCommand(command="ombor", description="Ombor qoldig'ini boshqarish"),
-                BotCommand(command="narx", description="Mahsulot narxlarini o'zgartirish")
+                BotCommand(command="narx", description="Mahsulot narxini o'zgartirish")
             ]
-            await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=int(config.ADMIN_ID)))
+            for admin_id_str in config.ADMIN_ID.split(","):
+                try:
+                    admin_id_clean = admin_id_str.strip()
+                    if admin_id_clean.isdigit() or (admin_id_clean.startswith("-") and admin_id_clean[1:].isdigit()):
+                        await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=int(admin_id_clean)))
+                        logging.info(f"Registered admin commands for ID: {admin_id_clean}")
+                except Exception as scope_err:
+                    logging.error(f"Failed to set admin commands for single ID {admin_id_str}: {scope_err}")
         except Exception as e:
             logging.error(f"Failed to set admin commands: {e}")
     

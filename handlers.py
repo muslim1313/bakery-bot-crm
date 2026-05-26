@@ -45,14 +45,20 @@ router = Router()
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
-    # Get inventory to handle out-of-stock
+    # Get inventory to handle out-of-stock and prices
     try:
         inventory = await db.get_inventory()
         out_of_stock_ids = [item["product_id"] for item in inventory if not item["in_stock"]]
         out_param = ",".join(out_of_stock_ids)
+        
+        # Parse sell prices dynamically
+        prices = {item["product_id"]: item["sell"] for item in inventory}
+        import urllib.parse
+        prices_param = urllib.parse.quote(json.dumps(prices))
     except Exception as e:
         print(f"DB Error in start: {e}")
         out_param = ""
+        prices_param = ""
 
     welcome_text = (
         "<b>Saxovat Baraka</b> buyurtma tizimiga xush kelibsiz!\n\n"
@@ -63,9 +69,9 @@ async def cmd_start(message: Message):
     is_admin = str(message.from_user.id) == str(ADMIN_ID)
     
     if is_admin:
-        reply_markup = kb.get_main_menu(out_param)
+        reply_markup = kb.get_main_menu(out_param, prices_param)
     else:
-        reply_markup = kb.get_user_menu(out_param)
+        reply_markup = kb.get_user_menu(out_param, prices_param)
 
     from aiogram.types import LinkPreviewOptions
     # Combine into one message for better keyboard reliability
