@@ -440,7 +440,7 @@ async def inline_share_handler(inline_query: InlineQuery):
     
     await inline_query.answer([result], cache_time=1, is_personal=True)
 
-@router.message(Command("narx"))
+@router.message(or_f(Command("narx"), F.text == "💵 Narx sozlash"))
 async def cmd_narx(message: Message):
     if not _is_admin(message.from_user.id):
         await message.answer("Ushbu amal faqat admin uchun.")

@@ -25,7 +25,8 @@ def get_main_menu(out_param="", prices_param=""):
         keyboard=[
             [KeyboardButton(text="🛒 Buyurtma berish", web_app=WebAppInfo(url=url))],
             [KeyboardButton(text="📊 Hisobotni olish"), KeyboardButton(text="📦 Ombor boshqaruvi")],
-            [KeyboardButton(text="📈 Tezkor Statistika"), KeyboardButton(text="📋 Buyurtmalarim")]
+            [KeyboardButton(text="📈 Tezkor Statistika"), KeyboardButton(text="💵 Narx sozlash")],
+            [KeyboardButton(text="📋 Buyurtmalarim")]
         ],
         resize_keyboard=True
     )
