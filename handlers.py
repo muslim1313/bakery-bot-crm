@@ -1,6 +1,6 @@
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, LinkPreviewOptions, InlineQuery, InlineQueryResultPhoto, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart, Command, or_f
 from config import ADMIN_ID, GROUP_ID, CONTACT_PHONE, CONTACT_USERNAME
 import database as db
 import keyboards as kb
@@ -14,7 +14,10 @@ MAX_QTY_PER_ITEM = 1000
 
 
 def _is_admin(user_id: int) -> bool:
-    return str(user_id) == str(ADMIN_ID)
+    admin_str = str(ADMIN_ID).strip()
+    if not admin_str:
+        return False
+    return str(user_id) in [x.strip() for x in admin_str.split(",")]
 
 
 def _normalize_text(value, fallback: str) -> str:
@@ -69,7 +72,7 @@ async def cmd_start(message: Message):
     )
     
     # Check admin status
-    is_admin = str(message.from_user.id) == str(ADMIN_ID)
+    is_admin = _is_admin(message.from_user.id)
     
     if is_admin:
         reply_markup = kb.get_main_menu(out_param, prices_param)
@@ -233,7 +236,7 @@ async def location_handler(message: Message, bot: Bot):
         out_param, prices_param = await _webapp_menu_params()
         welcome_kb = (
             kb.get_user_menu(out_param, prices_param)
-            if str(message.from_user.id) != str(ADMIN_ID)
+            if not _is_admin(message.from_user.id)
             else kb.get_main_menu(out_param, prices_param)
         )
         await message.answer(
@@ -545,8 +548,7 @@ def generate_thermal_receipt(order_id: int, order: dict, products_pricing: dict)
     return receipt
 
 
-@router.message(F.text == "📈 Tezkor Statistika")
-@router.message(Command("stats"))
+@router.message(or_f(Command("stats"), F.text == "📈 Tezkor Statistika"))
 async def cmd_stats(message: Message):
     if not _is_admin(message.from_user.id):
         await message.answer("Ushbu amal faqat admin uchun.")
@@ -601,8 +603,7 @@ async def cmd_stats(message: Message):
         await message.answer(f"Statistikani yuklashda xatolik: {e}")
 
 
-@router.message(F.text == "📋 Buyurtmalarim")
-@router.message(Command("buyurtmalar"))
+@router.message(or_f(Command("buyurtmalar"), F.text == "📋 Buyurtmalarim"))
 async def cmd_buyurtmalar(message: Message):
     try:
         orders = await db.get_orders_by_user(message.from_user.id)
