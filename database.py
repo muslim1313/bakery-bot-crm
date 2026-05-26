@@ -206,3 +206,11 @@ async def update_order_location(order_id: int, lat: float, lon: float):
     )
     await db.commit()
 
+async def update_product_price(product_id: str, cost: float, sell: float):
+    db = await get_db()
+    await db.execute(
+        "UPDATE inventory SET cost = ?, sell = ? WHERE product_id = ?",
+        (cost, sell, product_id)
+    )
+    await db.commit()
+

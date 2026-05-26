@@ -419,3 +419,47 @@ async def inline_share_handler(inline_query: InlineQuery):
     )
     
     await inline_query.answer([result], cache_time=1, is_personal=True)
+
+@router.message(Command("narx"))
+async def cmd_narx(message: Message):
+    if not _is_admin(message.from_user.id):
+        await message.answer("Ushbu amal faqat admin uchun.")
+        return
+        
+    parts = message.text.split()
+    if len(parts) < 4:
+        inventory = await db.get_inventory()
+        help_text = (
+            "<b>Mahsulot narxini o'zgartirish buyrug'i:</b>\n\n"
+            "Format: <code>/narx [Mahsulot_ID] [Tannarx] [Sotish_Narxi]</code>\n\n"
+            "Mavjud Mahsulotlar va narxlar:\n"
+        )
+        for item in inventory:
+            help_text += f"- <code>{item['product_id']}</code>: {item['product_name']} (Tannarx: {item['cost']:,} so'm, Sotish: {item['sell']:,} so'm)\n"
+        
+        help_text += "\nMisol: <code>/narx Pechini 1 38000 46000</code>"
+        await message.answer(help_text, parse_mode="HTML")
+        return
+
+    try:
+        sell = float(parts[-1])
+        cost = float(parts[-2])
+        product_id = " ".join(parts[1:-2])
+        
+        inventory = await db.get_inventory()
+        existing_ids = [item["product_id"] for item in inventory]
+        
+        if product_id not in existing_ids:
+            await message.answer(f"Xatolik: <code>{html.escape(product_id)}</code> nomli mahsulot topilmadi.", parse_mode="HTML")
+            return
+            
+        await db.update_product_price(product_id, cost, sell)
+        await message.answer(
+            f"Muvaffaqiyatli yangilandi!\n\n"
+            f"Mahsulot: <b>{html.escape(product_id)}</b>\n"
+            f"Yangi Tannarx: {cost:,} so'm\n"
+            f"Yangi Sotish Narxi: {sell:,} so'm",
+            parse_mode="HTML"
+        )
+    except Exception:
+        await message.answer("Xatolik: Narx formatini to'g'ri kiriting. Masalan: <code>/narx Pechini 1 38000 46000</code>", parse_mode="HTML")

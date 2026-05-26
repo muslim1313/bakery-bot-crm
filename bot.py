@@ -43,7 +43,8 @@ async def main():
             admin_commands = [
                 BotCommand(command="start", description="Botni ishga tushirish"),
                 BotCommand(command="hisobot", description="Hisobotlar menyusi"),
-                BotCommand(command="ombor", description="Ombor qoldig'ini boshqarish")
+                BotCommand(command="ombor", description="Ombor qoldig'ini boshqarish"),
+                BotCommand(command="narx", description="Mahsulot narxlarini o'zgartirish")
             ]
             await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=int(config.ADMIN_ID)))
         except Exception as e:
