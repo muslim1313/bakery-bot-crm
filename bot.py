@@ -34,7 +34,8 @@ async def main():
     
     # Set Bot Commands
     common_commands = [
-        BotCommand(command="start", description="Botni ishga tushirish")
+        BotCommand(command="start", description="Botni ishga tushirish"),
+        BotCommand(command="buyurtmalar", description="Buyurtmalarim tarixi")
     ]
     await bot.set_my_commands(common_commands, scope=BotCommandScopeDefault())
     
@@ -44,7 +45,9 @@ async def main():
                 BotCommand(command="start", description="Botni ishga tushirish"),
                 BotCommand(command="hisobot", description="Hisobotlar menyusi"),
                 BotCommand(command="ombor", description="Ombor qoldig'ini boshqarish"),
-                BotCommand(command="narx", description="Mahsulot narxini o'zgartirish")
+                BotCommand(command="narx", description="Mahsulot narxini o'zgartirish"),
+                BotCommand(command="stats", description="Tezkor statistika paneli"),
+                BotCommand(command="buyurtmalar", description="Buyurtmalarim tarixi")
             ]
             for admin_id_str in config.ADMIN_ID.split(","):
                 try:

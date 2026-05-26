@@ -24,7 +24,8 @@ def get_main_menu(out_param="", prices_param=""):
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="🛒 Buyurtma berish", web_app=WebAppInfo(url=url))],
-            [KeyboardButton(text="📊 Hisobotni olish"), KeyboardButton(text="📦 Ombor boshqaruvi")]
+            [KeyboardButton(text="📊 Hisobotni olish"), KeyboardButton(text="📦 Ombor boshqaruvi")],
+            [KeyboardButton(text="📈 Tezkor Statistika"), KeyboardButton(text="📋 Buyurtmalarim")]
         ],
         resize_keyboard=True
     )
@@ -36,7 +37,8 @@ def get_user_menu(out_param="", prices_param=""):
             
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="🛒 Buyurtma berish", web_app=WebAppInfo(url=url))]
+            [KeyboardButton(text="🛒 Buyurtma berish", web_app=WebAppInfo(url=url))],
+            [KeyboardButton(text="📋 Buyurtmalarim")]
         ],
         resize_keyboard=True
     )

@@ -327,10 +327,13 @@ async def order_status_callback(callback: CallbackQuery):
 
     try:
         if status == "accepted":
+            products_pricing = await db.get_products_pricing()
+            receipt = generate_thermal_receipt(order_id, order, products_pricing)
             customer_text = (
-                f"<b>Buyurtmangiz muvaffaqiyatli qabul qilindi.</b>\n\n"
-                f"Buyurtma ID: #{order_id}\n"
-                f"Tafsilot: Buyurtmangiz tayyorlanish jarayonida."
+                f"<b>Buyurtmangiz muvaffaqiyatli qabul qilindi!</b>\n\n"
+                f"Status: ⏳ Tayyorlanmoqda\n\n"
+                f"🧾 <b>Sizning kvitansiyangiz:</b>\n"
+                f"{receipt}"
             )
             customer_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
@@ -482,3 +485,159 @@ async def cmd_narx(message: Message):
         )
     except Exception:
         await message.answer("Xatolik: Narx formatini to'g'ri kiriting. Masalan: <code>/narx Pechini 1 38000 46000</code>", parse_mode="HTML")
+
+
+def generate_thermal_receipt(order_id: int, order: dict, products_pricing: dict) -> str:
+    from datetime import datetime
+    import pytz
+    tashkent_tz = pytz.timezone('Asia/Tashkent')
+    
+    created_at_str = order.get("created_at", "")
+    try:
+        if isinstance(created_at_str, str):
+            dt = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
+        else:
+            dt = created_at_str
+        dt_tashkent = dt.astimezone(tashkent_tz) if hasattr(dt, "astimezone") else dt
+        date_formatted = dt_tashkent.strftime("%d.%m.%Y %H:%M")
+    except Exception:
+        date_formatted = datetime.now(tashkent_tz).strftime("%d.%m.%Y %H:%M")
+
+    receipt = (
+        "<code>"
+        "================================\n"
+        "        SAXOVAT BARAKA\n"
+        "================================\n"
+        f"Kvitansiya: #{order_id}\n"
+        f"Sana:       {date_formatted}\n"
+        f"Mijoz:      {order.get('name', 'Mijoz')}\n"
+        f"Telefon:    {order.get('phone', '')}\n"
+        f"Do'kon:     {order.get('store', '')}\n"
+        "--------------------------------\n"
+        "Mahsulotlar:\n"
+    )
+    
+    try:
+        cart = json.loads(order.get("cart_json", "{}"))
+    except Exception:
+        cart = {}
+
+    for p_id, qty in cart.items():
+        prod_info = products_pricing.get(p_id, {"name": p_id, "sell": 0})
+        name = prod_info.get("name", p_id)
+        sell_price = prod_info.get("sell", 0)
+        item_total = sell_price * int(qty)
+        
+        name_short = name[:18]
+        qty_str = f"{qty} d."
+        price_str = f"{item_total:,} so'm"
+        
+        receipt += f"{name_short:<18} {qty_str:>5} {price_str:>8}\n"
+        
+    receipt += (
+        "--------------------------------\n"
+        f"JAMI:            {int(order.get('total_revenue', 0)):,} so'm\n"
+        "================================\n"
+        "    Xaridingiz uchun rahmat!\n"
+        "================================"
+        "</code>"
+    )
+    return receipt
+
+
+@router.message(F.text == "📈 Tezkor Statistika")
+@router.message(Command("stats"))
+async def cmd_stats(message: Message):
+    if not _is_admin(message.from_user.id):
+        await message.answer("Ushbu amal faqat admin uchun.")
+        return
+
+    try:
+        stats = await db.get_admin_stats()
+        
+        today = stats["today"]
+        yesterday = stats["yesterday"]
+        month = stats["month"]
+        top_products = stats["top_products"]
+        
+        target = 5_000_000
+        progress = min(1.0, month["rev"] / target) if target > 0 else 0
+        filled = int(progress * 10)
+        bar = "█" * filled + "░" * (10 - filled)
+        
+        top_text = ""
+        block_chars = ["█", "▆", "▄"]
+        for idx, (p_id, qty) in enumerate(top_products):
+            block = block_chars[idx] if idx < len(block_chars) else "■"
+            top_text += f" {block} <code>{p_id:<12}</code>: {qty} dona\n"
+            
+        if not top_text:
+            top_text = " Bugun hali savdo bo'lmadi.\n"
+
+        stats_card = (
+            "<b>📊 CRM TEZKOR STATISTIKA</b>\n\n"
+            f"📅 <b>Bugungi holat:</b>\n"
+            f"  • Buyurtmalar: {today['count']} ta\n"
+            f"  • Savdo: <code>{int(today['rev']):,} so'm</code>\n"
+            f"  • Sof Foyda: <code>{int(today['profit']):,} so'm</code>\n\n"
+            f"⏮ <b>Kechagi holat:</b>\n"
+            f"  • Buyurtmalar: {yesterday['count']} ta\n"
+            f"  • Savdo: <code>{int(yesterday['rev']):,} so'm</code>\n"
+            f"  • Sof Foyda: <code>{int(yesterday['profit']):,} so'm</code>\n\n"
+            f"📆 <b>Joriy oylik:</b>\n"
+            f"  • Buyurtmalar: {month['count']} ta\n"
+            f"  • Savdo: <code>{int(month['rev']):,} so'm</code>\n"
+            f"  • Sof Foyda: <code>{int(month['profit']):,} so'm</code>\n\n"
+            f"🎯 <b>Haftalik Plan:</b>\n"
+            f"  <code>{bar}</code> {int(progress * 100)}%\n"
+            f"  (Plan: {target:,} so'm)\n\n"
+            f"🏆 <b>Top sotilganlar (Bugun):</b>\n"
+            f"{top_text}"
+        )
+        
+        await message.answer(stats_card, parse_mode="HTML")
+    except Exception as e:
+        logger.exception("cmd_stats failed")
+        await message.answer(f"Statistikani yuklashda xatolik: {e}")
+
+
+@router.message(F.text == "📋 Buyurtmalarim")
+@router.message(Command("buyurtmalar"))
+async def cmd_buyurtmalar(message: Message):
+    try:
+        orders = await db.get_orders_by_user(message.from_user.id)
+        if not orders:
+            await message.answer("Sizda hali buyurtmalar mavjud emas.")
+            return
+
+        response_text = "<b>📋 Sizning oxirgi buyurtmalaringiz:</b>\n\n"
+        
+        status_map = {
+            "pending": "⏳ Kutish jarayonida",
+            "accepted": "✅ Qabul qilindi",
+            "rejected": "❌ Rad etildi"
+        }
+
+        for order in orders:
+            status_text = status_map.get(order.get("status"), order.get("status", "Kutishda"))
+            
+            created_at = order.get("created_at", "")
+            try:
+                if isinstance(created_at, str):
+                    date_only = created_at.split()[0]
+                else:
+                    date_only = created_at.strftime("%Y-%m-%d")
+            except Exception:
+                date_only = ""
+
+            response_text += (
+                f"<b>Buyurtma #{order['id']}</b> ({date_only})\n"
+                f"  Jami summa: {int(order['total_revenue']):,} so'm\n"
+                f"  Holati: <b>{status_text}</b>\n"
+                "--------------------------------\n"
+            )
+
+        await message.answer(response_text, parse_mode="HTML")
+    except Exception as e:
+        logger.exception("cmd_buyurtmalar failed")
+        await message.answer(f"Buyurtmalarni yuklashda xatolik: {e}")

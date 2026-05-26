@@ -214,3 +214,81 @@ async def update_product_price(product_id: str, cost: float, sell: float):
     )
     await db.commit()
 
+async def get_orders_by_user(telegram_id: int):
+    db = await get_db()
+    db.row_factory = aiosqlite.Row
+    cursor = await db.execute(
+        "SELECT * FROM orders WHERE telegram_id = ? ORDER BY id DESC LIMIT 10",
+        (telegram_id,)
+    )
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+async def get_admin_stats():
+    import pytz
+    tashkent_tz = pytz.timezone('Asia/Tashkent')
+    now = datetime.now(tashkent_tz)
+    
+    today_str = now.strftime('%Y-%m-%d')
+    from datetime import timedelta
+    yesterday_str = (now - timedelta(days=1)).strftime('%Y-%m-%d')
+    month_str = now.strftime('%Y-%m')
+    
+    db = await get_db()
+    db.row_factory = aiosqlite.Row
+    
+    # Today's stats
+    cursor = await db.execute(
+        "SELECT COUNT(*), SUM(total_revenue), SUM(profit) FROM orders WHERE status = 'accepted' AND date(created_at) = ?",
+        (today_str,)
+    )
+    today_row = await cursor.fetchone()
+    today_count = today_row[0] or 0
+    today_rev = today_row[1] or 0
+    today_profit = today_row[2] or 0
+    
+    # Yesterday's stats
+    cursor = await db.execute(
+        "SELECT COUNT(*), SUM(total_revenue), SUM(profit) FROM orders WHERE status = 'accepted' AND date(created_at) = ?",
+        (yesterday_str,)
+    )
+    yesterday_row = await cursor.fetchone()
+    yesterday_count = yesterday_row[0] or 0
+    yesterday_rev = yesterday_row[1] or 0
+    yesterday_profit = yesterday_row[2] or 0
+    
+    # This month's stats
+    cursor = await db.execute(
+        "SELECT COUNT(*), SUM(total_revenue), SUM(profit) FROM orders WHERE status = 'accepted' AND strftime('%Y-%m', created_at) = ?",
+        (month_str,)
+    )
+    month_row = await cursor.fetchone()
+    month_count = month_row[0] or 0
+    month_rev = month_row[1] or 0
+    month_profit = month_row[2] or 0
+    
+    # Top products today
+    cursor = await db.execute(
+        "SELECT cart_json FROM orders WHERE status = 'accepted' AND date(created_at) = ?",
+        (today_str,)
+    )
+    rows = await cursor.fetchall()
+    product_sales = {}
+    for row in rows:
+        try:
+            cart = json.loads(row['cart_json'])
+            for p_id, qty in cart.items():
+                product_sales[p_id] = product_sales.get(p_id, 0) + int(qty)
+        except Exception:
+            continue
+            
+    # Sort top products
+    top_products = sorted(product_sales.items(), key=lambda x: x[1], reverse=True)[:3]
+    
+    return {
+        "today": {"count": today_count, "rev": today_rev, "profit": today_profit},
+        "yesterday": {"count": yesterday_count, "rev": yesterday_rev, "profit": yesterday_profit},
+        "month": {"count": month_count, "rev": month_rev, "profit": month_profit},
+        "top_products": top_products
+    }
+
