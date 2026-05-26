@@ -33,6 +33,16 @@ def _parse_float(value):
         return None
 
 
+async def _webapp_menu_params():
+    inventory = await db.get_inventory()
+    out_of_stock_ids = [item["product_id"] for item in inventory if not item["in_stock"]]
+    out_param = ",".join(out_of_stock_ids)
+    prices = {item["product_id"]: item["sell"] for item in inventory}
+    import urllib.parse
+    prices_param = urllib.parse.quote(json.dumps(prices, ensure_ascii=False))
+    return out_param, prices_param
+
+
 def _contact_links():
     username_clean = CONTACT_USERNAME.strip()
     if username_clean.startswith("@"):
@@ -47,14 +57,7 @@ router = Router()
 async def cmd_start(message: Message):
     # Get inventory to handle out-of-stock and prices
     try:
-        inventory = await db.get_inventory()
-        out_of_stock_ids = [item["product_id"] for item in inventory if not item["in_stock"]]
-        out_param = ",".join(out_of_stock_ids)
-        
-        # Parse sell prices dynamically
-        prices = {item["product_id"]: item["sell"] for item in inventory}
-        import urllib.parse
-        prices_param = urllib.parse.quote(json.dumps(prices))
+        out_param, prices_param = await _webapp_menu_params()
     except Exception as e:
         print(f"DB Error in start: {e}")
         out_param = ""
@@ -227,7 +230,12 @@ async def location_handler(message: Message, bot: Bot):
         lon = message.location.longitude
         await db.update_order_location(order["id"], lat, lon)
 
-        welcome_kb = kb.get_user_menu() if str(message.from_user.id) != str(ADMIN_ID) else kb.get_main_menu()
+        out_param, prices_param = await _webapp_menu_params()
+        welcome_kb = (
+            kb.get_user_menu(out_param, prices_param)
+            if str(message.from_user.id) != str(ADMIN_ID)
+            else kb.get_main_menu(out_param, prices_param)
+        )
         await message.answer(
             f"Joylashuvingiz muvaffaqiyatli tasdiqlandi! Buyurtmangiz tez orada yetkaziladi.\n\n"
             f"Buyurtma ID: #{order['id']}\n"
@@ -460,12 +468,17 @@ async def cmd_narx(message: Message):
             return
             
         await db.update_product_price(product_id, cost, sell)
+        out_param, prices_param = await _webapp_menu_params()
+        menu_kb = kb.get_main_menu(out_param, prices_param)
         await message.answer(
             f"Muvaffaqiyatli yangilandi!\n\n"
             f"Mahsulot: <b>{html.escape(product_id)}</b>\n"
             f"Yangi Tannarx: {cost:,} so'm\n"
-            f"Yangi Sotish Narxi: {sell:,} so'm",
-            parse_mode="HTML"
+            f"Yangi Sotish Narxi: {sell:,} so'm\n\n"
+            f"Mini-appda yangi narx ko'rinishi uchun pastdagi "
+            f"<b>Buyurtma berish</b> tugmasini qayta bosing yoki /start yuboring.",
+            parse_mode="HTML",
+            reply_markup=menu_kb,
         )
     except Exception:
         await message.answer("Xatolik: Narx formatini to'g'ri kiriting. Masalan: <code>/narx Pechini 1 38000 46000</code>", parse_mode="HTML")

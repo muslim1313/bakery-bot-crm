@@ -13,14 +13,6 @@ window.onload = () => {
     // Parse inventory constraints from URL params
     const urlParams = new URLSearchParams(window.location.search);
     
-    // Ekranda URL ni ko'rsatish
-    document.title = urlParams.get('prices') ? "✅ Narx bor" : "❌ Narx yo'q";
-    
-    const debugDiv = document.createElement('div');
-    debugDiv.style = 'position:fixed;top:0;left:0;right:0;background:red;color:white;font-size:11px;padding:4px;z-index:9999;word-break:break-all;';
-    debugDiv.innerText = 'prices: ' + urlParams.get('prices');
-    document.body.appendChild(debugDiv);
-
     const stockParam = urlParams.get('out_of_stock');
     if (stockParam) {
         outOfStock = stockParam.split(',').map(id => decodeURIComponent(id.trim()));
@@ -36,19 +28,17 @@ window.onload = () => {
         { id: "Pechini 6", name: "Azbuka", price: 70000, img: "assets/podium_6.png" }
     ];
 
-    // Apply pricing overrides passed from Telegram Bot
     const pricesParam = urlParams.get('prices');
     if (pricesParam) {
         try {
             const prices = JSON.parse(pricesParam);
-            products.forEach(p => {
+            products.forEach((p) => {
                 if (prices[p.id] !== undefined) {
                     p.price = Number(prices[p.id]);
                 }
             });
-            console.log("Narxlar muvaffaqiyatli yangilandi:", prices);
         } catch (pricesErr) {
-            console.error("Narx parse xatosi:", pricesErr);
+            console.error('Narx parse xatosi:', pricesErr);
         }
     }
 

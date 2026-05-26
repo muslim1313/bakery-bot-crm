@@ -4,7 +4,7 @@ if (tg) {
     tg.expand();
 }
 
-const products = [
+let products = [
     { id: "Pechini 1", name: "Taplyonniy", price: 45000, img: "assets/podium_1.png" },
     { id: "Pechini 2", name: "Yubileyniy", price: 45000, img: "assets/podium_2.png" },
     { id: "Pechini 3", name: "Yulduz", price: 48000, img: "assets/podium_3.png" },
@@ -17,20 +17,30 @@ let cart = {};
 let outOfStock = [];
 let isSubmitting = false;
 
+function applyPricesFromUrl(urlParams) {
+    const pricesParam = urlParams.get('prices');
+    if (!pricesParam) return;
+    try {
+        const prices = JSON.parse(pricesParam);
+        products.forEach((p) => {
+            if (prices[p.id] !== undefined) {
+                p.price = Number(prices[p.id]);
+            }
+        });
+    } catch (err) {
+        console.error('Narx parse xatosi:', err);
+    }
+}
+
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const stockParam = urlParams.get('out_of_stock');
-    
-    // DEBUG - konsolda tekshirish uchun
-    console.log("RAW out_of_stock param:", stockParam);
-    console.log("Full URL:", window.location.href);
 
     if (stockParam) {
         outOfStock = stockParam.split(',').map(id => decodeURIComponent(id.trim()));
     }
-    
-    console.log("outOfStock array:", outOfStock);
-    console.log("products ids:", products.map(p => p.id));
+
+    applyPricesFromUrl(urlParams);
 
     // Load saved data
     const savedName = localStorage.getItem('bakery_name');

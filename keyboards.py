@@ -2,15 +2,22 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from config import WEBAPP_URL
 import urllib.parse
 
-def get_main_menu(out_param="", prices_param=""):
-    url = WEBAPP_URL
+
+def build_webapp_url(out_param="", prices_param=""):
+    """WEBAPP_URL da allaqachon ? bo'lsa, qo'shimcha parametrlar & bilan ulanadi."""
+    url = WEBAPP_URL.rstrip("/")
     params = []
     if out_param:
         params.append(f"out_of_stock={urllib.parse.quote(out_param)}")
     if prices_param:
         params.append(f"prices={prices_param}")
     if params:
-        url += "?" + "&".join(params)
+        url += ("&" if "?" in url else "?") + "&".join(params)
+    return url
+
+
+def get_main_menu(out_param="", prices_param=""):
+    url = build_webapp_url(out_param, prices_param)
             
     print(f"DEBUG: WebApp URL is '{url}'")
             
@@ -23,14 +30,7 @@ def get_main_menu(out_param="", prices_param=""):
     )
 
 def get_user_menu(out_param="", prices_param=""):
-    url = WEBAPP_URL
-    params = []
-    if out_param:
-        params.append(f"out_of_stock={urllib.parse.quote(out_param)}")
-    if prices_param:
-        params.append(f"prices={prices_param}")
-    if params:
-        url += "?" + "&".join(params)
+    url = build_webapp_url(out_param, prices_param)
             
     print(f"DEBUG: WebApp User URL is '{url}'")
             
