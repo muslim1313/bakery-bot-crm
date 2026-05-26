@@ -19,7 +19,7 @@ CLICK_P2P_LINK = os.getenv("CLICK_P2P_LINK", "")
 PAYME_CARD = os.getenv("PAYME_CARD", "")
 
 # Miniapp ssilkasi (Netlify yoki Vercel / GitHub Pages).
-WEBAPP_URL = os.getenv("WEBAPP_URL", "https://muslim1313.github.io/bakery-bot-crm/?v=3.0").strip()
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://stronger-subsection-thrown-samba.trycloudflare.com").strip()
 
 # Bog'lanish ma'lumotlari (webapp pastki qismidagi kontaktlar bilan bir xil)
 CONTACT_PHONE = os.getenv("CONTACT_PHONE", "+998200131394").strip()
