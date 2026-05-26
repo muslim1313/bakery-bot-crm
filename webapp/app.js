@@ -9,7 +9,7 @@ let cart = {};
 let outOfStock = [];
 let isSubmitting = false;
 
-window.onload = async () => {
+window.onload = () => {
     // Parse inventory constraints from URL params
     const urlParams = new URLSearchParams(window.location.search);
     const stockParam = urlParams.get('out_of_stock');
@@ -17,34 +17,15 @@ window.onload = async () => {
         outOfStock = stockParam.split(',').map(id => decodeURIComponent(id.trim()));
     }
 
-    // Dynamic loading of products from server API or products.json, with premium fallback
-    try {
-        const response = await fetch('/api/products');
-        if (!response.ok) throw new Error("API failed");
-        products = await response.json();
-    } catch (err) {
-        console.log("Failed to load dynamic API, trying products.json fallback", err);
-        try {
-            const response = await fetch('products.json');
-            const data = await response.json();
-            products = data.map(p => ({
-                id: p.id,
-                name: p.name,
-                price: p.sell,
-                img: p.img
-            }));
-        } catch (fallbackErr) {
-            console.error("Failed to load products.json, using static fallback", fallbackErr);
-            products = [
-                { id: "Pechini 1", name: "Taplyonniy", price: 45000, img: "assets/podium_1.png" },
-                { id: "Pechini 2", name: "Yubileyniy", price: 45000, img: "assets/podium_2.png" },
-                { id: "Pechini 3", name: "Yulduz", price: 48000, img: "assets/podium_3.png" },
-                { id: "Pechini 4", name: "Olmali", price: 60000, img: "assets/podium_4.png" },
-                { id: "Pechini 5", name: "Pop Corn", price: 60000, img: "assets/podium_5.png" },
-                { id: "Pechini 6", name: "Azbuka", price: 70000, img: "assets/podium_6.png" }
-            ];
-        }
-    }
+    // Static baseline layout
+    products = [
+        { id: "Pechini 1", name: "Taplyonniy", price: 45000, img: "assets/podium_1.png" },
+        { id: "Pechini 2", name: "Yubileyniy", price: 45000, img: "assets/podium_2.png" },
+        { id: "Pechini 3", name: "Yulduz", price: 48000, img: "assets/podium_3.png" },
+        { id: "Pechini 4", name: "Olmali", price: 60000, img: "assets/podium_4.png" },
+        { id: "Pechini 5", name: "Pop Corn", price: 60000, img: "assets/podium_5.png" },
+        { id: "Pechini 6", name: "Azbuka", price: 70000, img: "assets/podium_6.png" }
+    ];
 
     // Apply pricing overrides passed from Telegram Bot
     const pricesParam = urlParams.get('prices');
@@ -56,8 +37,9 @@ window.onload = async () => {
                     p.price = Number(prices[p.id]);
                 }
             });
+            console.log("Narxlar muvaffaqiyatli yangilandi:", prices);
         } catch (pricesErr) {
-            console.error("Failed to parse prices parameter", pricesErr);
+            console.error("Narx parse xatosi:", pricesErr);
         }
     }
 
