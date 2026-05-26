@@ -50,7 +50,7 @@ window.onload = async () => {
     const pricesParam = urlParams.get('prices');
     if (pricesParam) {
         try {
-            const prices = JSON.parse(decodeURIComponent(pricesParam));
+            const prices = JSON.parse(pricesParam);
             products.forEach(p => {
                 if (prices[p.id] !== undefined) {
                     p.price = Number(prices[p.id]);
