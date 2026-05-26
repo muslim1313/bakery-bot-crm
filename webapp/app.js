@@ -12,6 +12,15 @@ let isSubmitting = false;
 window.onload = () => {
     // Parse inventory constraints from URL params
     const urlParams = new URLSearchParams(window.location.search);
+    
+    // Ekranda URL ni ko'rsatish
+    document.title = urlParams.get('prices') ? "✅ Narx bor" : "❌ Narx yo'q";
+    
+    const debugDiv = document.createElement('div');
+    debugDiv.style = 'position:fixed;top:0;left:0;right:0;background:red;color:white;font-size:11px;padding:4px;z-index:9999;word-break:break-all;';
+    debugDiv.innerText = 'prices: ' + urlParams.get('prices');
+    document.body.appendChild(debugDiv);
+
     const stockParam = urlParams.get('out_of_stock');
     if (stockParam) {
         outOfStock = stockParam.split(',').map(id => decodeURIComponent(id.trim()));
