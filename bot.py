@@ -67,6 +67,8 @@ async def main():
             "Iltimos botni faqat bitta joyda ishga tushiring."
         )
     finally:
+        from database import close_db
+        await close_db()
         await bot.session.close()
 
 if __name__ == "__main__":

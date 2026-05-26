@@ -4,7 +4,19 @@ from datetime import datetime
 import os
 
 DB_PATH = os.getenv("DB_PATH", "orders.db")
+_db = None
 
+async def get_db():
+    global _db
+    if _db is None:
+        _db = await aiosqlite.connect(DB_PATH)
+    return _db
+
+async def close_db():
+    global _db
+    if _db is not None:
+        await _db.close()
+        _db = None
 
 def _summary_query(period: str):
     import pytz
@@ -27,53 +39,67 @@ def _summary_query(period: str):
 
 
 async def init_db():
-    async with aiosqlite.connect(DB_PATH) as db:
-        # Orders table with both Store and Location
-        await db.execute('''
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                telegram_id INTEGER,
-                name TEXT,
-                phone TEXT,
-                store TEXT,
-                location_lat REAL,
-                location_lon REAL,
-                cart_json TEXT,
-                total_cost REAL,
-                total_revenue REAL,
-                profit REAL,
-                status TEXT DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Self-migration: Check if columns exist (for existing databases on Railway/Server)
-        cursor = await db.execute("PRAGMA table_info(orders)")
-        columns = [row[1] for row in await cursor.fetchall()]
-        
-        if "location_lat" not in columns:
-            await db.execute("ALTER TABLE orders ADD COLUMN location_lat REAL")
-        if "location_lon" not in columns:
-            await db.execute("ALTER TABLE orders ADD COLUMN location_lon REAL")
+    db = await get_db()
+    # Orders table with both Store and Location
+    await db.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER,
+            name TEXT,
+            phone TEXT,
+            store TEXT,
+            location_lat REAL,
+            location_lon REAL,
+            cart_json TEXT,
+            total_cost REAL,
+            total_revenue REAL,
+            profit REAL,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Self-migration: Check if columns exist (for existing databases)
+    cursor = await db.execute("PRAGMA table_info(orders)")
+    columns = [row[1] for row in await cursor.fetchall()]
+    
+    if "location_lat" not in columns:
+        await db.execute("ALTER TABLE orders ADD COLUMN location_lat REAL")
+    if "location_lon" not in columns:
+        await db.execute("ALTER TABLE orders ADD COLUMN location_lon REAL")
 
-        # Inventory table
+    # Inventory table with prices
+    await db.execute('''
+        CREATE TABLE IF NOT EXISTS inventory (
+            product_id TEXT PRIMARY KEY,
+            product_name TEXT,
+            in_stock INTEGER DEFAULT 1,
+            cost REAL DEFAULT 0,
+            sell REAL DEFAULT 0
+        )
+    ''')
+    
+    # Self-migration: check if cost and sell exist in inventory
+    cursor = await db.execute("PRAGMA table_info(inventory)")
+    inv_columns = [row[1] for row in await cursor.fetchall()]
+    if "cost" not in inv_columns:
+        await db.execute("ALTER TABLE inventory ADD COLUMN cost REAL DEFAULT 0")
+    if "sell" not in inv_columns:
+        await db.execute("ALTER TABLE inventory ADD COLUMN sell REAL DEFAULT 0")
+
+    # Initial inventory setup from config
+    from config import PRODUCTS_PRICING
+    for p_id, p_info in PRODUCTS_PRICING.items():
         await db.execute('''
-            CREATE TABLE IF NOT EXISTS inventory (
-                product_id TEXT PRIMARY KEY,
-                product_name TEXT,
-                in_stock INTEGER DEFAULT 1
-            )
-        ''')
+            INSERT INTO inventory (product_id, product_name, in_stock, cost, sell) 
+            VALUES (?, ?, 1, ?, ?)
+            ON CONFLICT(product_id) DO UPDATE SET
+                product_name = excluded.product_name,
+                cost = CASE WHEN cost = 0 THEN excluded.cost ELSE cost END,
+                sell = CASE WHEN sell = 0 THEN excluded.sell ELSE sell END
+        ''', (p_id, p_info["name"], p_info["cost"], p_info["sell"]))
         
-        # Initial inventory setup from config
-        from config import PRODUCTS_PRICING
-        for p_id, p_info in PRODUCTS_PRICING.items():
-            await db.execute('''
-                INSERT OR IGNORE INTO inventory (product_id, product_name, in_stock) 
-                VALUES (?, ?, 1)
-            ''', (p_id, p_info["name"]))
-            
-        await db.commit()
+    await db.commit()
 
 async def add_order(telegram_id: int, name: str, phone: str, store: str, lat: float, lon: float, cart: dict, total_cost: float, total_revenue: float, profit: float):
     import pytz
@@ -81,48 +107,48 @@ async def add_order(telegram_id: int, name: str, phone: str, store: str, lat: fl
     tashkent_tz = pytz.timezone('Asia/Tashkent')
     now_tashkent = datetime.now(tashkent_tz).strftime('%Y-%m-%d %H:%M:%S')
 
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute('''
-            INSERT INTO orders (telegram_id, name, phone, store, location_lat, location_lon, cart_json, total_cost, total_revenue, profit, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-        ''', (telegram_id, name, phone, store, lat, lon, json.dumps(cart), total_cost, total_revenue, profit, now_tashkent))
-        await db.commit()
-        return cursor.lastrowid
+    db = await get_db()
+    cursor = await db.execute('''
+        INSERT INTO orders (telegram_id, name, phone, store, location_lat, location_lon, cart_json, total_cost, total_revenue, profit, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+    ''', (telegram_id, name, phone, store, lat, lon, json.dumps(cart), total_cost, total_revenue, profit, now_tashkent))
+    await db.commit()
+    return cursor.lastrowid
 
 
 async def update_order_status(order_id: int, status: str):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('UPDATE orders SET status = ? WHERE id = ?', (status, order_id))
-        await db.commit()
+    db = await get_db()
+    await db.execute('UPDATE orders SET status = ? WHERE id = ?', (status, order_id))
+    await db.commit()
 
 
 async def get_order_by_id(order_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
-        row = await cursor.fetchone()
-        return dict(row) if row else None
+    db = await get_db()
+    db.row_factory = aiosqlite.Row
+    cursor = await db.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
+    row = await cursor.fetchone()
+    return dict(row) if row else None
 
 async def get_inventory():
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT * FROM inventory")
-        rows = await cursor.fetchall()
-        return [dict(row) for row in rows]
+    db = await get_db()
+    db.row_factory = aiosqlite.Row
+    cursor = await db.execute("SELECT * FROM inventory")
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
 
 async def toggle_stock(product_id: str):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('UPDATE inventory SET in_stock = 1 - in_stock WHERE product_id = ?', (product_id,))
-        await db.commit()
+    db = await get_db()
+    await db.execute('UPDATE inventory SET in_stock = 1 - in_stock WHERE product_id = ?', (product_id,))
+    await db.commit()
 
 async def get_summary(period='daily'):
     """period: 'daily' or 'monthly'"""
     sql, params = _summary_query(period)
         
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute(sql, params)
-        rows = await cursor.fetchall()
+    db = await get_db()
+    db.row_factory = aiosqlite.Row
+    cursor = await db.execute(sql, params)
+    rows = await cursor.fetchall()
         
     summary = {
         "count": len(rows),
@@ -142,8 +168,41 @@ async def get_summary(period='daily'):
 async def get_detailed_orders(period='daily'):
     sql, params = _summary_query(period)
         
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute(sql, params)
-        rows = await cursor.fetchall()
-        return [dict(row) for row in rows]
+    db = await get_db()
+    db.row_factory = aiosqlite.Row
+    cursor = await db.execute(sql, params)
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+async def get_products_pricing():
+    db = await get_db()
+    db.row_factory = aiosqlite.Row
+    cursor = await db.execute("SELECT product_id, product_name, cost, sell FROM inventory")
+    rows = await cursor.fetchall()
+    pricing = {}
+    for row in rows:
+        pricing[row["product_id"]] = {
+            "name": row["product_name"],
+            "cost": row["cost"],
+            "sell": row["sell"]
+        }
+    return pricing
+
+async def get_latest_pending_order_by_user(telegram_id: int):
+    db = await get_db()
+    db.row_factory = aiosqlite.Row
+    cursor = await db.execute(
+        "SELECT * FROM orders WHERE telegram_id = ? AND status = 'pending' ORDER BY id DESC LIMIT 1",
+        (telegram_id,)
+    )
+    row = await cursor.fetchone()
+    return dict(row) if row else None
+
+async def update_order_location(order_id: int, lat: float, lon: float):
+    db = await get_db()
+    await db.execute(
+        "UPDATE orders SET location_lat = ?, location_lon = ? WHERE id = ?",
+        (lat, lon, order_id)
+    )
+    await db.commit()
+

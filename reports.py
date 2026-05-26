@@ -12,7 +12,7 @@ async def generate_excel_report(period='daily'):
     if not orders:
         return None
     
-    from config import PRODUCTS_PRICING
+    products_pricing = await db.get_products_pricing()
     import json
     
     report_data = []
@@ -20,11 +20,11 @@ async def generate_excel_report(period='daily'):
         cart = json.loads(o['cart_json'])
         readable_cart = []
         for p_id, qty in cart.items():
-            p_name = PRODUCTS_PRICING.get(p_id, {}).get('name', p_id)
+            p_name = products_pricing.get(p_id, {}).get('name', p_id)
             readable_cart.append(f"{p_name}: {qty} dona")
         
         cart_str = ", ".join(readable_cart)
-
+ 
         report_data.append({
             "ID": f"#{o['id']}",
             "Mijoz": o['name'],
@@ -51,13 +51,13 @@ async def generate_excel_report(period='daily'):
         # Gridlines enabled
         worksheet.views.sheetView[0].showGridLines = True
         
-        # Styling tokens
+        # Styling tokens - Premium Charcoal & Gold Theme
         font_name = "Segoe UI"
         header_font = Font(name=font_name, size=11, bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+        header_fill = PatternFill(start_color="111111", end_color="111111", fill_type="solid")
         
         data_font = Font(name=font_name, size=10)
-        total_font = Font(name=font_name, size=11, bold=True, color="000000")
+        total_font = Font(name=font_name, size=11, bold=True, color="B78427")
         
         border_thin = Side(border_style="thin", color="D9D9D9")
         border_double = Side(border_style="double", color="000000")

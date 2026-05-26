@@ -1,12 +1,13 @@
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, LinkPreviewOptions, InlineQuery, InlineQueryResultPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
-from config import ADMIN_ID, GROUP_ID, PRODUCTS_PRICING, CONTACT_PHONE, CONTACT_USERNAME
+from config import ADMIN_ID, GROUP_ID, CONTACT_PHONE, CONTACT_USERNAME
 import database as db
 import keyboards as kb
 import json
 import html
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 MAX_QTY_PER_ITEM = 1000
@@ -54,8 +55,8 @@ async def cmd_start(message: Message):
         out_param = ""
 
     welcome_text = (
-        "✨ <b>Saxovat Baraka</b> buyurtma botiga xush kelibsiz!\n\n"
-        "👇 Buyurtma berish uchun pastdagi tugmani bosing."
+        "<b>Saxovat Baraka</b> buyurtma tizimiga xush kelibsiz!\n\n"
+        "Buyurtma berish uchun quyidagi tugmani bosing."
     )
     
     # Check admin status
@@ -81,29 +82,41 @@ async def web_app_data_handler(message: Message, bot: Bot):
         data = json.loads(message.web_app_data.data)
         cart = data.get("cart", {})
         if not isinstance(cart, dict) or not cart:
-            await message.answer("⚠️ Savatcha bo'sh yoki noto'g'ri.")
+            await message.answer("Savatcha bo'sh yoki ma'lumotlar noto'g'ri kiritildi.")
             return
 
-        phone = _normalize_text(data.get("phone"), "Noma'lum")
-        client_name = _normalize_text(data.get("name"), message.from_user.full_name or "Noma'lum")
-        store_name = _normalize_text(data.get("store"), "Noma'lum")
+        phone_raw = data.get("phone", "").strip()
+        # Uzbekistan phone regex format check
+        phone_match = re.match(r"^\+?(998)?\d{9}$", phone_raw)
+        if not phone_match:
+            await message.answer("Kiritilgan telefon raqami noto'g'ri. Iltimos, +998XXXXXXXXX formatida kiriting.")
+            return
+            
+        phone = phone_raw if phone_raw.startswith("+") else f"+{phone_raw}"
+        client_name = _normalize_text(data.get("name"), message.from_user.full_name or "Mijoz")
+        store_name = _normalize_text(data.get("store"), "Do'kon")
+        
+        if len(client_name) > 100 or len(store_name) > 150:
+            await message.answer("Ism yoki do'kon nomi juda uzun kiritilgan. Iltimos, qisqaroq qilib qayta kiriting.")
+            return
+
         lat = _parse_float(data.get("lat"))
         lon = _parse_float(data.get("lon"))
         if lat == 0.0 and lon == 0.0:
             lat = None
             lon = None
 
-
         total_cost = 0
         total_revenue = 0
         order_details = ""
         clean_cart = {}
 
+        products_pricing = await db.get_products_pricing()
         inventory = await db.get_inventory()
         stock_map = {item["product_id"]: bool(item["in_stock"]) for item in inventory}
 
         for p_id, qty in cart.items():
-            product = PRODUCTS_PRICING.get(p_id)
+            product = products_pricing.get(p_id)
             if not product:
                 continue
 
@@ -116,7 +129,7 @@ async def web_app_data_handler(message: Message, bot: Bot):
                 continue
 
             if not stock_map.get(p_id, True):
-                await message.answer(f"⚠️ {product['name']} hozir omborda yo'q. Iltimos savatchani yangilang.")
+                await message.answer(f"{product['name']} hozirda omborda mavjud emas. Iltimos, savatchani yangilang.")
                 return
 
             clean_cart[p_id] = qty_int
@@ -124,10 +137,10 @@ async def web_app_data_handler(message: Message, bot: Bot):
             sell = product["sell"] * qty_int
             total_cost += cost
             total_revenue += sell
-            order_details += f"▫️ {product['name']}: {qty_int} dona\n"
+            order_details += f"  {product['name']}: {qty_int} dona\n"
 
         if not clean_cart:
-            await message.answer("⚠️ Savatchada yaroqli mahsulot topilmadi.")
+            await message.answer("Savatchada buyurtma uchun yaroqli mahsulot topilmadi.")
             return
 
         profit = total_revenue - total_cost
@@ -139,32 +152,49 @@ async def web_app_data_handler(message: Message, bot: Bot):
         )
 
         # Send info to User
-        await message.answer(
-            f"⏳ <b>Buyurtmangiz kutish jarayonida.</b>\n\n"
-            f"ID: #{order_id}\n"
-            f"Jami: {total_revenue:,} so'm\n\n"
-            f"Holat: <b>Kutish...</b>",
-            parse_mode="HTML"
-        )
+        from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+        if lat is None or lon is None:
+            location_kb = ReplyKeyboardMarkup(
+                keyboard=[
+                    [KeyboardButton(text="📍 Joylashuvni tasdiqlash", request_location=True)]
+                ],
+                resize_keyboard=True,
+                one_time_keyboard=True
+            )
+            await message.answer(
+                f"<b>Buyurtmangiz #{order_id} qabul qilindi.</b>\n\n"
+                f"Jami summa: {total_revenue:,} so'm\n\n"
+                f"Iltimos, buyurtmangizni tezroq yetkazib berishimiz uchun quyidagi <b>'📍 Joylashuvni tasdiqlash'</b> tugmasini bosing.",
+                reply_markup=location_kb,
+                parse_mode="HTML"
+            )
+        else:
+            await message.answer(
+                f"<b>Buyurtmangiz muvaffaqiyatli qabul qilindi.</b>\n\n"
+                f"Buyurtma ID: #{order_id}\n"
+                f"Jami summa: {total_revenue:,} so'm\n\n"
+                f"Holati: <b>Kutish jarayonida</b>",
+                parse_mode="HTML"
+            )
 
         # Send Order Card to Group/Admin
         maps_link = f"https://www.google.com/maps?q={lat},{lon}"
         admin_card = (
-            f"🔔 <b>YANGI BUYURTMA #{order_id}</b>\n\n"
-            f"👤 Mijoz: {html.escape(client_name)}\n"
-            f"📞 Tel: <code>{html.escape(phone)}</code>\n"
-            f"🏪 Do'kon: {html.escape(store_name)}\n"
+            f"<b>YANGI BUYURTMA #{order_id}</b>\n\n"
+            f"Mijoz: {html.escape(client_name)}\n"
+            f"Telefon: <code>{html.escape(phone)}</code>\n"
+            f"Do'kon: {html.escape(store_name)}\n"
         )
         
         if lat is not None and lon is not None:
-            admin_card += f"📍 Manzil: <a href='{maps_link}'>Xaritada ko'rish</a>\n\n"
+            admin_card += f"Manzil: <a href='{maps_link}'>Xaritada ko'rish</a>\n\n"
         else:
-            admin_card += "📍 Manzil: Yuborilmagan\n\n"
+            admin_card += "Manzil: Yuborilmagan (Tasdiqlash kutilmoqda)\n\n"
 
         admin_card += (
-            f"📦 <b>Mahsulotlar:</b>\n{order_details}\n"
-            f"💰 Jami: {total_revenue:,} so'm\n"
-            f"📈 Foyda: {profit:,} so'm"
+            f"Mahsulotlar:\n{order_details}\n"
+            f"Jami summa: {total_revenue:,} so'm\n"
+            f"Sof foyda: {profit:,} so'm"
         )
 
         await bot.send_message(
@@ -179,17 +209,55 @@ async def web_app_data_handler(message: Message, bot: Bot):
         logger.exception("web_app_data_handler failed")
         await message.answer("Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.")
 
+@router.message(F.location)
+async def location_handler(message: Message, bot: Bot):
+    try:
+        order = await db.get_latest_pending_order_by_user(message.from_user.id)
+        if not order:
+            await message.answer("Sizda faol buyurtmalar topilmadi. Buyurtma berish uchun pastdagi tugmani bosing.")
+            return
+
+        lat = message.location.latitude
+        lon = message.location.longitude
+        await db.update_order_location(order["id"], lat, lon)
+
+        welcome_kb = kb.get_user_menu() if str(message.from_user.id) != str(ADMIN_ID) else kb.get_main_menu()
+        await message.answer(
+            f"Joylashuvingiz muvaffaqiyatli tasdiqlandi! Buyurtmangiz tez orada yetkaziladi.\n\n"
+            f"Buyurtma ID: #{order['id']}\n"
+            f"Holati: <b>Kutish jarayonida</b>",
+            reply_markup=welcome_kb,
+            parse_mode="HTML"
+        )
+
+        # Notify admin group of updated address
+        maps_link = f"https://www.google.com/maps?q={lat},{lon}"
+        admin_notify = (
+            f"📍 <b>BUYURTMA #{order['id']} MANZILI YANGILANDI</b>\n\n"
+            f"Mijoz: {html.escape(order['name'])}\n"
+            f"Manzil: <a href='{maps_link}'>Xaritada ko'rish</a>"
+        )
+        await bot.send_message(
+            GROUP_ID,
+            admin_notify,
+            parse_mode="HTML",
+            link_preview_options=LinkPreviewOptions(is_disabled=True)
+        )
+    except Exception:
+        logger.exception("location_handler failed")
+        await message.answer("Joylashuvni saqlashda xatolik yuz berdi.")
+
 @router.message(F.text == "📦 Ombor boshqaruvi")
 @router.message(Command("ombor"))
 async def cmd_ombor(message: Message):
     is_admin = _is_admin(message.from_user.id)
     if not is_admin:
         print(f"Unauthorized ombor access: {message.from_user.id} vs {ADMIN_ID}")
-        await message.answer(f"⚠️ <b>Siz admin emassiz!</b>\nSizning ID: <code>{message.from_user.id}</code>\nUshbu IDni admin sifatida ro'yxatdan o'tkazing.")
+        await message.answer(f"<b>Siz tizim administratori emassiz!</b>\nSizning Telegram ID: <code>{message.from_user.id}</code>")
         return
         
     inventory = await db.get_inventory()
-    await message.answer("📦 <b>Ombor holati:</b>\n\nKerakli mahsulotni tanlang:", reply_markup=kb.get_inventory_kb(inventory), parse_mode="HTML")
+    await message.answer("<b>Ombor zaxirasi holati:</b>\n\nKerakli mahsulotni tanlang:", reply_markup=kb.get_inventory_kb(inventory), parse_mode="HTML")
 
 @router.message(F.text == "📊 Hisobotni olish")
 @router.message(Command("hisobot"))
@@ -197,10 +265,10 @@ async def cmd_hisobot(message: Message):
     is_admin = _is_admin(message.from_user.id)
     if not is_admin:
         print(f"Unauthorized hisobot access: {message.from_user.id} vs {ADMIN_ID}")
-        await message.answer(f"⚠️ <b>Siz admin emassiz!</b>\nSizning ID: <code>{message.from_user.id}</code>")
+        await message.answer(f"<b>Siz tizim administratori emassiz!</b>\nSizning Telegram ID: <code>{message.from_user.id}</code>")
         return
         
-    await message.answer("📊 <b>Hisobot turini tanlang:</b>", reply_markup=kb.get_report_kb(), parse_mode="HTML")
+    await message.answer("<b>Tizim hisobotini olish:</b>\n\nKerakli hisobot turini tanlang:", reply_markup=kb.get_report_kb(), parse_mode="HTML")
 
 @router.callback_query(F.data.startswith("toggle_"))
 async def toggle_callback(callback: CallbackQuery):
@@ -232,7 +300,7 @@ async def order_status_callback(callback: CallbackQuery):
         return
     
     status = "accepted" if action == "accept" else "rejected"
-    status_text = "✅ Qabul qilindi" if action == "accept" else "❌ Rad etildi"
+    status_text = "Qabul qilindi" if action == "accept" else "Rad etildi"
     order = await db.get_order_by_id(order_id)
     if not order:
         await callback.answer("Buyurtma topilmadi.", show_alert=True)
@@ -240,33 +308,33 @@ async def order_status_callback(callback: CallbackQuery):
 
     await db.update_order_status(order_id, status)
     
-    new_text = callback.message.html_text + f"\n\n🏁 <b>Status: {status_text}</b>"
+    new_text = callback.message.html_text + f"\n\n<b>Holati: {status_text}</b>"
     await callback.message.edit_text(new_text, parse_mode="HTML", reply_markup=None)
 
     try:
         if status == "accepted":
             customer_text = (
-                f"✅ <b>Buyurtmangiz qabul qilindi.</b>\n\n"
-                f"ID: #{order_id}\n"
-                f"Holat: <b>Buyurtma qabul qilindi</b>"
+                f"<b>Buyurtmangiz muvaffaqiyatli qabul qilindi.</b>\n\n"
+                f"Buyurtma ID: #{order_id}\n"
+                f"Tafsilot: Buyurtmangiz tayyorlanish jarayonida."
             )
             customer_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="🛒 Yangi buyurtma berish", url="https://t.me/SaxovataBaraka_buyurtma_bot")]
+                    [InlineKeyboardButton(text="Yangi buyurtma berish", url="https://t.me/SaxovataBaraka_buyurtma_bot")]
                 ]
             )
         else:
             customer_text = (
-                f"❌ <b>Uzur, buyurtmangiz qabul qilinmadi.</b>\n\n"
-                f"ID: #{order_id}\n"
-                f"Ma'lumot uchun bog'laning:\n"
-                f"📞 {html.escape(CONTACT_PHONE)}\n"
-                f"👤 {html.escape(CONTACT_USERNAME)}"
+                f"<b>Uzr, buyurtmangiz qabul qilinmadi.</b>\n\n"
+                f"Buyurtma ID: #{order_id}\n"
+                f"Qo'shimcha ma'lumot olish uchun bog'lanishingiz mumkin:\n"
+                f"Telefon: {html.escape(CONTACT_PHONE)}\n"
+                f"Administrator: {html.escape(CONTACT_USERNAME)}"
             )
             tg_url = _contact_links()
             row = []
             if tg_url:
-                row.append(InlineKeyboardButton(text="💬 Telegram", url=tg_url))
+                row.append(InlineKeyboardButton(text="Telegram", url=tg_url))
             customer_kb = InlineKeyboardMarkup(inline_keyboard=[row]) if row else None
 
         await callback.bot.send_message(
@@ -297,14 +365,14 @@ async def manual_report_callback(callback: CallbackQuery, bot: Bot):
     try:
         summary = await db.get_summary(period)
         if summary['count'] == 0:
-            await callback.message.answer(f"⚠️ Bu davr uchun ({period}) buyurtmalar topilmadi.")
+            await callback.message.answer(f"Ushbu davr uchun ({period}) buyurtmalar topilmadi.")
             return
 
         text = (
-            f"📊 <b>{period.upper()} HISOBOT</b>\n\n"
-            f"✅ Buyurtmalar: {summary['count']} ta\n"
-            f"💰 Jami savdo: {summary['total_revenue']:,} so'm\n"
-            f"📈 Sof foyda: {summary['total_profit']:,} so'm"
+            f"<b>{period.upper()} HISOBOT</b>\n\n"
+            f"Buyurtmalar soni: {summary['count']} ta\n"
+            f"Jami savdo: {summary['total_revenue']:,} so'm\n"
+            f"Sof foyda: {summary['total_profit']:,} so'm"
         )
         
         filename = await rep.generate_excel_report(period)
@@ -335,7 +403,7 @@ async def inline_share_handler(inline_query: InlineQuery):
     
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🛒 Botga o'tish va buyurtma berish", url="https://t.me/SaxovataBaraka_buyurtma_bot")]
+            [InlineKeyboardButton(text="Botga o'tish va buyurtma berish", url="https://t.me/SaxovataBaraka_buyurtma_bot")]
         ]
     )
     
@@ -345,10 +413,9 @@ async def inline_share_handler(inline_query: InlineQuery):
         thumbnail_url=photo_url,
         title="Botni do'stlarga ulashish",
         description="Saxovat Baraka shirinliklari",
-        caption="✨ <b>Saxovat Baraka</b> pishiriqlari!\n\nEng mazali va hamyonbop shirinliklarni bevosita bot orqali buyurtma qiling. Do'stlaringizga ham ulashing! 🍪",
+        caption="<b>Saxovat Baraka</b> premium artisan pishiriqlari!\n\nEng mazali shirinliklarni bevosita Telegram Mini-App orqali buyurtma qiling. Do'stlaringizga ham ulashing.",
         parse_mode="HTML",
         reply_markup=keyboard
     )
     
     await inline_query.answer([result], cache_time=1, is_personal=True)
-
